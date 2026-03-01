@@ -61,10 +61,17 @@ public class ActionRegistry {
     }
 
     /**
-     * Get all registered actions.
+     * Get all registered actions as a collection.
      */
     public Collection<BrowserAction> getAllActions() {
         return Collections.unmodifiableCollection(actions.values());
+    }
+
+    /**
+     * Get all registered actions as a name-to-action map.
+     */
+    public Map<String, BrowserAction> getAllActionsMap() {
+        return Collections.unmodifiableMap(actions);
     }
 
     /**

@@ -40,6 +40,9 @@ public class ActionRegistry {
         register(new GetDropdownOptionsAction());
         register(new WaitAction());
         register(new DoneAction());
+        register(new HoverAction());
+        register(new DragAndDropAction());
+        register(new MouseMoveAction());
     }
 
     /**

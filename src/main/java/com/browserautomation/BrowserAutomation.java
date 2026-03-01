@@ -7,10 +7,13 @@ import com.browserautomation.agent.AgentResult;
 import com.browserautomation.browser.BrowserProfile;
 import com.browserautomation.browser.BrowserSession;
 import com.browserautomation.llm.AnthropicProvider;
+import com.browserautomation.llm.AwsBedrockProvider;
 import com.browserautomation.llm.AzureOpenAiProvider;
 import com.browserautomation.llm.DeepSeekProvider;
 import com.browserautomation.llm.GeminiProvider;
+import com.browserautomation.llm.GroqProvider;
 import com.browserautomation.llm.LlmProvider;
+import com.browserautomation.llm.MistralProvider;
 import com.browserautomation.llm.OllamaProvider;
 import com.browserautomation.llm.OpenAiProvider;
 import com.browserautomation.config.BrowserAutomationConfig;
@@ -235,6 +238,67 @@ public class BrowserAutomation {
          */
         public AgentBuilder ollama(String model, String baseUrl) {
             this.llmProvider = new OllamaProvider(baseUrl, model);
+            return this;
+        }
+
+        /**
+         * Use Groq for ultra-fast inference.
+         * Supports LLaMA, Mixtral, and Gemma models.
+         *
+         * @param model the model name (e.g., "llama-3.3-70b-versatile")
+         */
+        public AgentBuilder groq(String model) {
+            this.llmProvider = new GroqProvider(
+                    BrowserAutomationConfig.getInstance().getGroqApiKey(), model);
+            return this;
+        }
+
+        /**
+         * Use Groq with an explicit API key.
+         */
+        public AgentBuilder groq(String model, String apiKey) {
+            this.llmProvider = new GroqProvider(apiKey, model);
+            return this;
+        }
+
+        /**
+         * Use Mistral AI as the LLM provider.
+         *
+         * @param model the model name (e.g., "mistral-large-latest")
+         */
+        public AgentBuilder mistral(String model) {
+            this.llmProvider = new MistralProvider(
+                    BrowserAutomationConfig.getInstance().getMistralApiKey(), model);
+            return this;
+        }
+
+        /**
+         * Use Mistral AI with an explicit API key.
+         */
+        public AgentBuilder mistral(String model, String apiKey) {
+            this.llmProvider = new MistralProvider(apiKey, model);
+            return this;
+        }
+
+        /**
+         * Use AWS Bedrock as the LLM provider.
+         *
+         * @param model the Bedrock model ID (e.g., "anthropic.claude-3-5-sonnet-20241022-v2:0")
+         */
+        public AgentBuilder awsBedrock(String model) {
+            BrowserAutomationConfig config = BrowserAutomationConfig.getInstance();
+            this.llmProvider = new AwsBedrockProvider(
+                    config.getAwsAccessKeyId(), config.getAwsSecretAccessKey(),
+                    config.getAwsRegion(), model);
+            return this;
+        }
+
+        /**
+         * Use AWS Bedrock with explicit credentials.
+         */
+        public AgentBuilder awsBedrock(String model, String accessKeyId,
+                                       String secretAccessKey, String region) {
+            this.llmProvider = new AwsBedrockProvider(accessKeyId, secretAccessKey, region, model);
             return this;
         }
 

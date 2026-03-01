@@ -18,6 +18,11 @@ public class BrowserAutomationConfig {
     private String geminiApiKey;
     private String deepSeekApiKey;
     private String ollamaBaseUrl;
+    private String groqApiKey;
+    private String mistralApiKey;
+    private String awsAccessKeyId;
+    private String awsSecretAccessKey;
+    private String awsRegion;
     private String defaultLlmProvider;
     private String defaultModel;
     private String loggingLevel;
@@ -35,6 +40,11 @@ public class BrowserAutomationConfig {
         this.geminiApiKey = getEnv("GEMINI_API_KEY", "");
         this.deepSeekApiKey = getEnv("DEEPSEEK_API_KEY", "");
         this.ollamaBaseUrl = getEnv("OLLAMA_BASE_URL", "http://localhost:11434");
+        this.groqApiKey = getEnv("GROQ_API_KEY", "");
+        this.mistralApiKey = getEnv("MISTRAL_API_KEY", "");
+        this.awsAccessKeyId = getEnv("AWS_ACCESS_KEY_ID", "");
+        this.awsSecretAccessKey = getEnv("AWS_SECRET_ACCESS_KEY", "");
+        this.awsRegion = getEnv("AWS_REGION", "us-east-1");
         this.defaultLlmProvider = getEnv("BROWSER_AUTOMATION_LLM_PROVIDER", "openai");
         this.defaultModel = getEnv("BROWSER_AUTOMATION_MODEL", "gpt-4o");
         this.loggingLevel = getEnv("BROWSER_AUTOMATION_LOG_LEVEL", "info");
@@ -178,5 +188,45 @@ public class BrowserAutomationConfig {
 
     public void setOllamaBaseUrl(String ollamaBaseUrl) {
         this.ollamaBaseUrl = ollamaBaseUrl;
+    }
+
+    public String getGroqApiKey() {
+        return groqApiKey;
+    }
+
+    public void setGroqApiKey(String groqApiKey) {
+        this.groqApiKey = groqApiKey;
+    }
+
+    public String getMistralApiKey() {
+        return mistralApiKey;
+    }
+
+    public void setMistralApiKey(String mistralApiKey) {
+        this.mistralApiKey = mistralApiKey;
+    }
+
+    public String getAwsAccessKeyId() {
+        return awsAccessKeyId;
+    }
+
+    public void setAwsAccessKeyId(String awsAccessKeyId) {
+        this.awsAccessKeyId = awsAccessKeyId;
+    }
+
+    public String getAwsSecretAccessKey() {
+        return awsSecretAccessKey;
+    }
+
+    public void setAwsSecretAccessKey(String awsSecretAccessKey) {
+        this.awsSecretAccessKey = awsSecretAccessKey;
+    }
+
+    public String getAwsRegion() {
+        return awsRegion;
+    }
+
+    public void setAwsRegion(String awsRegion) {
+        this.awsRegion = awsRegion;
     }
 }

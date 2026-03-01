@@ -24,6 +24,13 @@ public class AgentResult {
         this.history = history;
     }
 
+    /**
+     * Create a failed result with an error message.
+     */
+    public static AgentResult failed(String errorMessage) {
+        return new AgentResult(false, errorMessage, 0, 0, 0, List.of());
+    }
+
     public boolean isSuccess() {
         return success;
     }

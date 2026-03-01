@@ -351,6 +351,52 @@ public class BrowserSession implements AutoCloseable {
     }
 
     /**
+     * Hover over a DOM element by its index.
+     */
+    public void hoverElement(int elementIndex) {
+        ensureStarted();
+        DomState state = domService.extractState(currentPage);
+        DomElement element = state.getElementByIndex(elementIndex);
+        if (element == null) {
+            throw new RuntimeException("Element with index " + elementIndex + " not found");
+        }
+        logger.info("Hovering over element [{}]: {}", elementIndex, element.getDescription());
+        String selector = element.buildSelector();
+        currentPage.locator(selector).first().hover();
+        waitAfterAction();
+    }
+
+    /**
+     * Drag one element and drop it onto another.
+     */
+    public void dragAndDrop(int sourceIndex, int targetIndex) {
+        ensureStarted();
+        DomState state = domService.extractState(currentPage);
+        DomElement sourceElement = state.getElementByIndex(sourceIndex);
+        DomElement targetElement = state.getElementByIndex(targetIndex);
+        if (sourceElement == null) {
+            throw new RuntimeException("Source element with index " + sourceIndex + " not found");
+        }
+        if (targetElement == null) {
+            throw new RuntimeException("Target element with index " + targetIndex + " not found");
+        }
+        logger.info("Dragging element [{}] to element [{}]", sourceIndex, targetIndex);
+        String sourceSelector = sourceElement.buildSelector();
+        String targetSelector = targetElement.buildSelector();
+        currentPage.locator(sourceSelector).first().dragTo(currentPage.locator(targetSelector).first());
+        waitAfterAction();
+    }
+
+    /**
+     * Move the mouse to specific coordinates.
+     */
+    public void mouseMove(double x, double y) {
+        ensureStarted();
+        currentPage.mouse().move(x, y);
+        waitAfterAction();
+    }
+
+    /**
      * Execute JavaScript on the page.
      */
     public Object executeJavaScript(String script) {
@@ -374,6 +420,13 @@ public class BrowserSession implements AutoCloseable {
 
     public BrowserProfile getProfile() {
         return profile;
+    }
+
+    /**
+     * Check if the browser session is started.
+     */
+    public boolean isStarted() {
+        return browser != null && currentPage != null;
     }
 
     private void waitAfterAction() {

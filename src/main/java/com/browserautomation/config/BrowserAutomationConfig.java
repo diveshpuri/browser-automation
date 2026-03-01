@@ -12,6 +12,12 @@ public class BrowserAutomationConfig {
     private String openAiBaseUrl;
     private String anthropicApiKey;
     private String anthropicBaseUrl;
+    private String azureOpenAiKey;
+    private String azureOpenAiEndpoint;
+    private String azureOpenAiApiVersion;
+    private String geminiApiKey;
+    private String deepSeekApiKey;
+    private String ollamaBaseUrl;
     private String defaultLlmProvider;
     private String defaultModel;
     private String loggingLevel;
@@ -23,6 +29,12 @@ public class BrowserAutomationConfig {
         this.openAiBaseUrl = getEnv("OPENAI_BASE_URL", "https://api.openai.com/v1");
         this.anthropicApiKey = getEnv("ANTHROPIC_API_KEY", "");
         this.anthropicBaseUrl = getEnv("ANTHROPIC_BASE_URL", "https://api.anthropic.com/v1");
+        this.azureOpenAiKey = getEnv("AZURE_OPENAI_KEY", "");
+        this.azureOpenAiEndpoint = getEnv("AZURE_OPENAI_ENDPOINT", "");
+        this.azureOpenAiApiVersion = getEnv("AZURE_OPENAI_API_VERSION", "2024-10-21");
+        this.geminiApiKey = getEnv("GEMINI_API_KEY", "");
+        this.deepSeekApiKey = getEnv("DEEPSEEK_API_KEY", "");
+        this.ollamaBaseUrl = getEnv("OLLAMA_BASE_URL", "http://localhost:11434");
         this.defaultLlmProvider = getEnv("BROWSER_AUTOMATION_LLM_PROVIDER", "openai");
         this.defaultModel = getEnv("BROWSER_AUTOMATION_MODEL", "gpt-4o");
         this.loggingLevel = getEnv("BROWSER_AUTOMATION_LOG_LEVEL", "info");
@@ -118,5 +130,53 @@ public class BrowserAutomationConfig {
 
     public void setDefaultTimeout(int defaultTimeout) {
         this.defaultTimeout = defaultTimeout;
+    }
+
+    public String getAzureOpenAiKey() {
+        return azureOpenAiKey;
+    }
+
+    public void setAzureOpenAiKey(String azureOpenAiKey) {
+        this.azureOpenAiKey = azureOpenAiKey;
+    }
+
+    public String getAzureOpenAiEndpoint() {
+        return azureOpenAiEndpoint;
+    }
+
+    public void setAzureOpenAiEndpoint(String azureOpenAiEndpoint) {
+        this.azureOpenAiEndpoint = azureOpenAiEndpoint;
+    }
+
+    public String getAzureOpenAiApiVersion() {
+        return azureOpenAiApiVersion;
+    }
+
+    public void setAzureOpenAiApiVersion(String azureOpenAiApiVersion) {
+        this.azureOpenAiApiVersion = azureOpenAiApiVersion;
+    }
+
+    public String getGeminiApiKey() {
+        return geminiApiKey;
+    }
+
+    public void setGeminiApiKey(String geminiApiKey) {
+        this.geminiApiKey = geminiApiKey;
+    }
+
+    public String getDeepSeekApiKey() {
+        return deepSeekApiKey;
+    }
+
+    public void setDeepSeekApiKey(String deepSeekApiKey) {
+        this.deepSeekApiKey = deepSeekApiKey;
+    }
+
+    public String getOllamaBaseUrl() {
+        return ollamaBaseUrl;
+    }
+
+    public void setOllamaBaseUrl(String ollamaBaseUrl) {
+        this.ollamaBaseUrl = ollamaBaseUrl;
     }
 }

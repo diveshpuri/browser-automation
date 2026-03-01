@@ -1,13 +1,13 @@
 # Browser Automation
 
-A Java library for AI-driven browser automation, inspired by [browser-use](https://github.com/browser-use/browser-use). Makes websites accessible for AI agents using [Playwright for Java](https://playwright.dev/java/) and LLM providers (OpenAI, Anthropic).
+A Java library for AI-driven browser automation, inspired by [browser-use](https://github.com/browser-use/browser-use). Makes websites accessible for AI agents using [Playwright for Java](https://playwright.dev/java/) and LLM providers (OpenAI, Anthropic, Azure OpenAI, Gemini, DeepSeek, Ollama).
 
 ## Features
 
 - **AI Agent** - Give a task in natural language and let the AI agent control the browser to complete it
 - **DOM Extraction** - Automatically extracts interactive elements from web pages and presents them to the LLM
 - **Vision Support** - Optionally sends screenshots to vision-capable LLMs for better understanding
-- **Multiple LLM Providers** - Built-in support for OpenAI and Anthropic, with an extensible provider interface
+- **Multiple LLM Providers** - Built-in support for OpenAI, Anthropic, Azure OpenAI, Google Gemini, DeepSeek (V3/R1), and Ollama (local models), with an extensible provider interface
 - **Action Registry** - 15+ built-in browser actions (click, type, navigate, scroll, etc.) with support for custom actions
 - **Fluent API** - Clean builder pattern for easy configuration
 - **Manual Control** - Use `BrowserSession` directly for programmatic browser automation without an LLM
@@ -58,6 +58,70 @@ System.out.println("Result: " + result.getResult());
 AgentResult result = BrowserAutomation.agent()
     .task("Find the current population of Tokyo on Wikipedia")
     .anthropic("claude-sonnet-4-20250514")
+    .run();
+```
+
+### With Azure OpenAI
+
+```java
+// Set AZURE_OPENAI_KEY and AZURE_OPENAI_ENDPOINT environment variables
+AgentResult result = BrowserAutomation.agent()
+    .task("Find the latest stock price of AAPL")
+    .azureOpenAi("gpt-4o")
+    .run();
+
+// Or provide credentials explicitly
+AgentResult result = BrowserAutomation.agent()
+    .task("Find the latest stock price of AAPL")
+    .azureOpenAi("gpt-4o", "your-api-key", "https://your-endpoint.openai.azure.com/")
+    .run();
+```
+
+### With Google Gemini
+
+```java
+// Set GEMINI_API_KEY environment variable
+AgentResult result = BrowserAutomation.agent()
+    .task("Summarize the top news on BBC")
+    .gemini("gemini-2.0-flash-exp")
+    .run();
+```
+
+### With DeepSeek
+
+```java
+// Set DEEPSEEK_API_KEY environment variable
+// DeepSeek-V3 (30x cheaper than GPT-4o, no rate limits)
+AgentResult result = BrowserAutomation.agent()
+    .task("Compare prices of flights from NYC to London")
+    .deepSeek("deepseek-chat")
+    .config(new AgentConfig().useVision(false)) // DeepSeek doesn't support vision
+    .run();
+
+// DeepSeek-R1 (reasoning model)
+AgentResult result = BrowserAutomation.agent()
+    .task("Analyze the pricing table on this page")
+    .deepSeek("deepseek-reasoner")
+    .config(new AgentConfig().useVision(false))
+    .run();
+```
+
+### With Ollama (Local Models)
+
+```java
+// No API key needed - runs locally
+// 1. Install Ollama: https://ollama.ai
+// 2. Pull a model: ollama pull qwen2.5
+// 3. Start Ollama: ollama serve
+AgentResult result = BrowserAutomation.agent()
+    .task("Extract the main content from this page")
+    .ollama("qwen2.5")
+    .run();
+
+// With custom server URL
+AgentResult result = BrowserAutomation.agent()
+    .task("Extract the main content from this page")
+    .ollama("llama3.1", "http://my-server:11434")
     .run();
 ```
 
@@ -208,7 +272,11 @@ com.browserautomation
 │   ├── ChatMessage             # Chat message types
 │   ├── LlmResponse            # Structured LLM response
 │   ├── OpenAiProvider         # OpenAI implementation
-│   └── AnthropicProvider      # Anthropic implementation
+│   ├── AnthropicProvider      # Anthropic implementation
+│   ├── AzureOpenAiProvider    # Azure OpenAI implementation
+│   ├── GeminiProvider         # Google Gemini implementation
+│   ├── DeepSeekProvider       # DeepSeek (V3/R1) implementation
+│   └── OllamaProvider         # Ollama local model implementation
 └── config/
     └── BrowserAutomationConfig # Global configuration
 ```
@@ -223,6 +291,12 @@ com.browserautomation
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | OpenAI API base URL |
 | `ANTHROPIC_API_KEY` | - | Anthropic API key |
 | `ANTHROPIC_BASE_URL` | `https://api.anthropic.com/v1` | Anthropic API base URL |
+| `AZURE_OPENAI_KEY` | - | Azure OpenAI API key |
+| `AZURE_OPENAI_ENDPOINT` | - | Azure OpenAI endpoint URL |
+| `AZURE_OPENAI_API_VERSION` | `2024-10-21` | Azure OpenAI API version |
+| `GEMINI_API_KEY` | - | Google Gemini API key |
+| `DEEPSEEK_API_KEY` | - | DeepSeek API key |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
 | `BROWSER_AUTOMATION_HEADLESS` | `true` | Run browser in headless mode |
 | `BROWSER_AUTOMATION_TIMEOUT` | `30000` | Default timeout in milliseconds |
 | `BROWSER_AUTOMATION_MODEL` | `gpt-4o` | Default LLM model |

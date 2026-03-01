@@ -7,7 +7,11 @@ import com.browserautomation.agent.AgentResult;
 import com.browserautomation.browser.BrowserProfile;
 import com.browserautomation.browser.BrowserSession;
 import com.browserautomation.llm.AnthropicProvider;
+import com.browserautomation.llm.AzureOpenAiProvider;
+import com.browserautomation.llm.DeepSeekProvider;
+import com.browserautomation.llm.GeminiProvider;
 import com.browserautomation.llm.LlmProvider;
+import com.browserautomation.llm.OllamaProvider;
 import com.browserautomation.llm.OpenAiProvider;
 import com.browserautomation.config.BrowserAutomationConfig;
 
@@ -139,6 +143,98 @@ public class BrowserAutomation {
          */
         public AgentBuilder anthropic(String model, String apiKey) {
             this.llmProvider = new AnthropicProvider(apiKey, model);
+            return this;
+        }
+
+        /**
+         * Use Azure OpenAI as the LLM provider.
+         *
+         * @param model    the deployment name (e.g., "gpt-4o")
+         * @param apiKey   the Azure OpenAI API key
+         * @param endpoint the Azure OpenAI endpoint URL
+         */
+        public AgentBuilder azureOpenAi(String model, String apiKey, String endpoint) {
+            this.llmProvider = new AzureOpenAiProvider(apiKey, endpoint, model);
+            return this;
+        }
+
+        /**
+         * Use Azure OpenAI with environment variables (AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT).
+         *
+         * @param model the deployment name
+         */
+        public AgentBuilder azureOpenAi(String model) {
+            BrowserAutomationConfig config = BrowserAutomationConfig.getInstance();
+            this.llmProvider = new AzureOpenAiProvider(
+                    config.getAzureOpenAiKey(), config.getAzureOpenAiEndpoint(), model);
+            return this;
+        }
+
+        /**
+         * Use Google Gemini as the LLM provider.
+         *
+         * @param model  the model name (e.g., "gemini-2.0-flash-exp", "gemini-1.5-pro")
+         * @param apiKey the Gemini API key
+         */
+        public AgentBuilder gemini(String model, String apiKey) {
+            this.llmProvider = new GeminiProvider(apiKey, model);
+            return this;
+        }
+
+        /**
+         * Use Google Gemini with the GEMINI_API_KEY environment variable.
+         *
+         * @param model the model name
+         */
+        public AgentBuilder gemini(String model) {
+            this.llmProvider = new GeminiProvider(
+                    BrowserAutomationConfig.getInstance().getGeminiApiKey(), model);
+            return this;
+        }
+
+        /**
+         * Use DeepSeek as the LLM provider.
+         * Supports DeepSeek-V3 ("deepseek-chat") and DeepSeek-R1 ("deepseek-reasoner").
+         * Note: DeepSeek does not support vision.
+         *
+         * @param model  the model name
+         * @param apiKey the DeepSeek API key
+         */
+        public AgentBuilder deepSeek(String model, String apiKey) {
+            this.llmProvider = new DeepSeekProvider(apiKey, model);
+            return this;
+        }
+
+        /**
+         * Use DeepSeek with the DEEPSEEK_API_KEY environment variable.
+         *
+         * @param model the model name
+         */
+        public AgentBuilder deepSeek(String model) {
+            this.llmProvider = new DeepSeekProvider(
+                    BrowserAutomationConfig.getInstance().getDeepSeekApiKey(), model);
+            return this;
+        }
+
+        /**
+         * Use Ollama for local model inference.
+         * Requires Ollama to be running locally.
+         *
+         * @param model the model name (e.g., "qwen2.5", "llama3.1", "mistral")
+         */
+        public AgentBuilder ollama(String model) {
+            this.llmProvider = new OllamaProvider(model);
+            return this;
+        }
+
+        /**
+         * Use Ollama with a custom server URL.
+         *
+         * @param model   the model name
+         * @param baseUrl the Ollama server URL (e.g., "http://localhost:11434")
+         */
+        public AgentBuilder ollama(String model, String baseUrl) {
+            this.llmProvider = new OllamaProvider(baseUrl, model);
             return this;
         }
 

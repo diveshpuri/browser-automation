@@ -13,7 +13,6 @@ import java.util.function.Consumer;
 
 /**
  * Data synchronization service between components.
- * Equivalent to browser-use's sync module.
  *
  * Provides a publish-subscribe mechanism for sharing state and data
  * between agents, browser sessions, and other components.

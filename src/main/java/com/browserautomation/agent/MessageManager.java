@@ -9,7 +9,6 @@ import java.util.List;
 
 /**
  * Manages the conversation message history for the agent.
- * Equivalent to browser-use's message_manager module.
  *
  * <p>Handles:</p>
  * <ul>

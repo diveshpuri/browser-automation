@@ -9,7 +9,6 @@ import java.util.*;
 /**
  * Registry of available browser actions.
  * Manages action registration and lookup.
- * Equivalent to browser-use's Registry/Tools.
  */
 public class ActionRegistry {
 

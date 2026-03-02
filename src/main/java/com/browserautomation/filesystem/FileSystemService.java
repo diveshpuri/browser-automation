@@ -17,7 +17,6 @@ import java.util.stream.Stream;
 
 /**
  * File system abstraction for browser automation.
- * Equivalent to browser-use's filesystem module.
  *
  * Provides file operations for downloads, uploads, screenshots,
  * and temporary file management during automation sessions.

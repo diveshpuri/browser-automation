@@ -13,7 +13,6 @@ import java.util.List;
  * Fallback LLM service that automatically switches to a backup LLM provider
  * on errors or rate limits. Supports multiple fallback providers in priority order.
  *
- * Equivalent to browser-use's fallback LLM switching on provider errors/rate limits.
  */
 public class FallbackLlmService {
 

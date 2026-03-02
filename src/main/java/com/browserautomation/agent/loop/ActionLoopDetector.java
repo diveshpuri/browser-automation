@@ -11,7 +11,6 @@ import java.util.*;
  * Detects repetitive action loops in agent execution using page fingerprinting
  * and rolling window action similarity tracking.
  *
- * Equivalent to browser-use's ActionLoopDetector with page fingerprinting
  * (URL + element_count + text_hash) and rolling window action similarity.
  */
 public class ActionLoopDetector {

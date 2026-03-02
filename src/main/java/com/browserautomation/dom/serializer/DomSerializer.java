@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
  * Supports multiple serialization strategies with clickable element detection
  * and bounding box filtering.
  *
- * Equivalent to browser-use's DOM serializer (1276 lines).
  */
 public class DomSerializer {
 

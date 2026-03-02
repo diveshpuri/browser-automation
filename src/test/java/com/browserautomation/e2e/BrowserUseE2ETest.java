@@ -33,18 +33,6 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * End-to-End integration tests for browser-automation.
  *
- * These tests mirror the default browser-use Python example:
- * <pre>
- * async def main():
- *     browser = Browser(use_cloud=False)
- *     agent = Agent(
- *         task="Find the number of stars of the browser-use repo",
- *         llm=ChatGoogle(model='gemini-3-flash-preview'),
- *         browser=browser,
- *     )
- *     await agent.run()
- * </pre>
- *
  * These tests are tagged with "e2e" and only run when the corresponding
  * API key environment variable is set. They are excluded from regular CI builds.
  *
@@ -66,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("e2e")
 class BrowserUseE2ETest {
 
-    private static final String TASK = "Find the number of stars of the browser-use repo on github";
+    private static final String TASK = "Find the current price of Bitcoin on google";
 
     /** Artifact output directory — configurable via E2E_ARTIFACTS_DIR env var. */
     private static final Path ARTIFACTS_DIR = Path.of(
@@ -139,11 +127,7 @@ class BrowserUseE2ETest {
     }
 
     /**
-     * E2E test using Google Gemini — direct equivalent of the Python example.
-     *
-     * Python:
-     *   agent = Agent(task="...", llm=ChatGoogle(model='gemini-3-flash-preview'), browser=browser)
-     *   await agent.run()
+     * E2E test using Google Gemini.
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "GEMINI_API_KEY", matches = ".+")
@@ -332,9 +316,6 @@ class BrowserUseE2ETest {
 
     /**
      * E2E test using OpenAI GPT-4o.
-     *
-     * Python equivalent:
-     *   agent = Agent(task="...", llm=ChatOpenAI(model='gpt-4o'), browser=browser)
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
@@ -364,9 +345,6 @@ class BrowserUseE2ETest {
 
     /**
      * E2E test using Anthropic Claude.
-     *
-     * Python equivalent:
-     *   agent = Agent(task="...", llm=ChatAnthropic(model='claude-sonnet-4-6'), browser=browser)
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")

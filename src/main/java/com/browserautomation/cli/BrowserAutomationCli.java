@@ -16,7 +16,6 @@ import java.util.List;
 
 /**
  * Command-line interface for the browser-automation library.
- * Equivalent to browser-use's cli.py.
  *
  * <p>Provides an interactive REPL for running browser automation tasks,
  * and a single-command mode for scripting.</p>

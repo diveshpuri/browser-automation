@@ -17,7 +17,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Code understanding and execution module.
- * Equivalent to browser-use's code_use module.
  *
  * Allows the agent to execute code snippets in a controlled environment
  * and use the results to inform browser automation decisions.

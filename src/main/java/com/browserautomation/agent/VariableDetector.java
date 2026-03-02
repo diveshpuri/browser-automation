@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 
 /**
  * Detects and extracts variables from conversation messages.
- * Equivalent to browser-use's agent/variable_detector.py.
  *
  * Identifies patterns like "the user's name is X", "set price to Y",
  * placeholders like {variable}, ${variable}, and key=value pairs.

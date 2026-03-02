@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 
 /**
  * Token counting utility for estimating token usage.
- * Equivalent to browser-use's tokens module.
  *
  * <p>Provides approximate token counting for different models and providers.
  * Uses character-based estimation with model-specific adjustments.</p>

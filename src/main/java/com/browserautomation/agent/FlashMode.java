@@ -13,7 +13,6 @@ import java.util.Map;
 /**
  * Flash mode for stripped-down agent execution.
  * Disables evaluation, thinking, and other overhead for maximum speed.
- * Equivalent to browser-use's flash mode.
  *
  * In flash mode:
  * - No evaluation/self-assessment steps

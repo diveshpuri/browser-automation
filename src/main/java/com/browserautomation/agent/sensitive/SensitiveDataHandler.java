@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
  * domain-scoped {@code <secret>} tags. This prevents credentials from being
  * sent to the LLM in plain text.
  *
- * Equivalent to browser-use's sensitive data handling.
  *
  * Usage:
  * <pre>

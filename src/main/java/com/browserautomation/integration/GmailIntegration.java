@@ -10,7 +10,6 @@ import java.util.Map;
 
 /**
  * Gmail integration for browser automation.
- * Equivalent to browser-use's integrations/gmail module.
  *
  * Provides pre-built automation patterns for common Gmail operations
  * using the browser session.

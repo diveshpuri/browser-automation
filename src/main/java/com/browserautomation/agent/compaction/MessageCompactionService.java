@@ -13,7 +13,6 @@ import java.util.List;
  * LLM-driven message compaction service that summarizes old conversation history
  * to reduce token usage for long-running agent tasks.
  *
- * Equivalent to browser-use's message compaction in message_manager.
  * Triggers compaction every N steps or when token count exceeds threshold.
  */
 public class MessageCompactionService {

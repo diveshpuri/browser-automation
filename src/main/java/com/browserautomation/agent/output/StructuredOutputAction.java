@@ -12,7 +12,6 @@ import java.util.*;
 /**
  * Generic typed output schema for structured agent outputs.
  * Allows defining a schema that the LLM should conform to when producing results.
- * Equivalent to browser-use's StructuredOutputAction[T].
  *
  * Usage:
  * <pre>

@@ -7,7 +7,6 @@ import com.browserautomation.browser.BrowserSession;
 
 /**
  * Drag one DOM element and drop it onto another.
- * Equivalent to browser-use's mouse.py drag functionality.
  */
 public class DragAndDropAction implements BrowserAction {
 

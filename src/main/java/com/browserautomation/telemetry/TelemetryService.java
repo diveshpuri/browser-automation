@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Telemetry data collection service.
- * Equivalent to browser-use's telemetry module.
  *
  * Collects usage metrics, performance data, and operational telemetry
  * for monitoring and optimization. All data is stored locally.

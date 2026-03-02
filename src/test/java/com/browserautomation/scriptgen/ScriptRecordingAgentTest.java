@@ -25,12 +25,12 @@ class ScriptRecordingAgentTest {
         generator.recordAction("click_element",
                 java.util.Map.of("index", 1), "[data-testid=\"search\"]", "https://github.com");
         generator.recordAction("input_text",
-                java.util.Map.of("text", "browser-use"), "#search-input", "https://github.com");
+                java.util.Map.of("text", "java automation"), "#search-input", "https://github.com");
 
         String script = generator.generateScript();
         assertTrue(script.contains("github.com"));
         assertTrue(script.contains("search"));
-        assertTrue(script.contains("browser-use"));
+        assertTrue(script.contains("java automation"));
     }
 
     @Test

@@ -7,7 +7,6 @@ import com.browserautomation.browser.BrowserSession;
 
 /**
  * Move the mouse to specific coordinates on the page.
- * Equivalent to browser-use's mouse.py move functionality.
  */
 public class MouseMoveAction implements BrowserAction {
 

@@ -22,8 +22,7 @@ import com.browserautomation.config.BrowserAutomationConfig;
 /**
  * Main entry point and facade for the browser automation library.
  *
- * <p>Provides a simple, fluent API for creating and running browser automation agents.
- * Inspired by the Python browser-use library.</p>
+ * <p>Provides a simple, fluent API for creating and running browser automation agents.</p>
  *
  * <h2>Quick Start</h2>
  * <pre>{@code

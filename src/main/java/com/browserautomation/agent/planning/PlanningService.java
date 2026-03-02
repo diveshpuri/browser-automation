@@ -13,7 +13,6 @@ import java.util.List;
 /**
  * Multi-step planning system for the agent.
  * Creates plans, detects stalls, and triggers replanning with exploration nudges.
- * Equivalent to browser-use's planning system.
  */
 public class PlanningService {
 

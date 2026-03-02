@@ -9,7 +9,6 @@ import java.util.UUID;
  * Events are typed messages dispatched through the EventBus to enable
  * decoupled communication between components (watchdogs, agent, tools).
  *
- * Equivalent to browser-use's BaseEvent from bubus.
  */
 public class BrowserEvent {
 

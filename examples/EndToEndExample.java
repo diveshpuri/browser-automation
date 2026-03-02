@@ -7,19 +7,6 @@ import com.browserautomation.browser.BrowserSession;
 /**
  * End-to-End example demonstrating browser-automation usage.
  *
- * This is the Java equivalent of the Python browser-use example:
- *
- * <pre>
- * async def main():
- *     browser = Browser(use_cloud=False)
- *     agent = Agent(
- *         task="Find the number of stars of the browser-use repo",
- *         llm=ChatGoogle(model='gemini-3-flash-preview'),
- *         browser=browser,
- *     )
- *     await agent.run()
- * </pre>
- *
  * Before running, set one of these environment variables:
  *   export GEMINI_API_KEY=your-gemini-key
  *   export OPENAI_API_KEY=your-openai-key
@@ -28,14 +15,7 @@ import com.browserautomation.browser.BrowserSession;
 public class EndToEndExample {
 
     /**
-     * Example 1: Using Google Gemini (mirrors the Python example exactly).
-     *
-     * Python equivalent:
-     *   agent = Agent(
-     *       task="Find the number of stars of the browser-use repo",
-     *       llm=ChatGoogle(model='gemini-3-flash-preview'),
-     *       browser=browser,
-     *   )
+     * Example 1: Using Google Gemini.
      */
     public static void withGemini() {
         // Browser(use_cloud=False) equivalent - local browser
@@ -46,7 +26,7 @@ public class EndToEndExample {
         try {
             // Agent(task=..., llm=ChatGoogle(...), browser=browser)
             AgentResult result = BrowserAutomation.agent()
-                    .task("Find the number of stars of the browser-use repo")
+                    .task("Find the current price of Bitcoin on google")
                     .gemini("gemini-3-flash-preview")
                     .browserSession(browser)
                     .run();
@@ -63,13 +43,6 @@ public class EndToEndExample {
 
     /**
      * Example 2: Same task using OpenAI (alternative LLM).
-     *
-     * Python equivalent:
-     *   agent = Agent(
-     *       task="Find the number of stars of the browser-use repo",
-     *       llm=ChatOpenAI(model='gpt-4o'),
-     *       browser=browser,
-     *   )
      */
     public static void withOpenAi() {
         BrowserSession browser = BrowserAutomation.createBrowserSession(
@@ -78,7 +51,7 @@ public class EndToEndExample {
 
         try {
             AgentResult result = BrowserAutomation.agent()
-                    .task("Find the number of stars of the browser-use repo")
+                    .task("Find the current price of Bitcoin on google")
                     .openAi("gpt-4o")
                     .browserSession(browser)
                     .run();
@@ -92,13 +65,6 @@ public class EndToEndExample {
 
     /**
      * Example 3: Same task using Anthropic Claude.
-     *
-     * Python equivalent:
-     *   agent = Agent(
-     *       task="Find the number of stars of the browser-use repo",
-     *       llm=ChatAnthropic(model='claude-sonnet-4-6'),
-     *       browser=browser,
-     *   )
      */
     public static void withAnthropic() {
         BrowserSession browser = BrowserAutomation.createBrowserSession(
@@ -107,7 +73,7 @@ public class EndToEndExample {
 
         try {
             AgentResult result = BrowserAutomation.agent()
-                    .task("Find the number of stars of the browser-use repo")
+                    .task("Find the current price of Bitcoin on google")
                     .anthropic("claude-sonnet-4-20250514")
                     .browserSession(browser)
                     .run();
@@ -129,7 +95,7 @@ public class EndToEndExample {
 
         try {
             AgentResult result = BrowserAutomation.agent()
-                    .task("Find the number of stars of the browser-use repo")
+                    .task("Find the current price of Bitcoin on google")
                     .deepSeek("deepseek-chat")
                     .browserSession(browser)
                     .config(new AgentConfig().useVision(false))
@@ -152,7 +118,7 @@ public class EndToEndExample {
 
         try {
             AgentResult result = BrowserAutomation.agent()
-                    .task("Find the number of stars of the browser-use repo")
+                    .task("Find the current price of Bitcoin on google")
                     .ollama("qwen2.5")
                     .browserSession(browser)
                     .run();
@@ -166,7 +132,7 @@ public class EndToEndExample {
 
     public static void main(String[] args) {
         System.out.println("=== Browser Automation E2E Example ===");
-        System.out.println("Task: Find the number of stars of the browser-use repo\n");
+        System.out.println("Task: Find the current price of Bitcoin on google\n");
 
         // Detect which LLM provider is available and run with it
         String geminiKey = System.getenv("GEMINI_API_KEY");

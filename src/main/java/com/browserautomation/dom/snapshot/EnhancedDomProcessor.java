@@ -13,7 +13,6 @@ import java.util.*;
  * Supports compound component detection, paint order filtering,
  * new node marking, and enhanced visibility/clickability detection.
  *
- * Equivalent to browser-use's enhanced DOM processing capabilities.
  */
 public class EnhancedDomProcessor {
 

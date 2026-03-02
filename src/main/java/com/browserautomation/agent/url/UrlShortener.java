@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
  * Replaces long URLs with shortened placeholders and maintains a mapping
  * for restoration when needed.
  *
- * Equivalent to browser-use's URL shortening feature.
  */
 public class UrlShortener {
 

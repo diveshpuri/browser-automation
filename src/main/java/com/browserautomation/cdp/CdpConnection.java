@@ -13,7 +13,6 @@ import java.util.function.Consumer;
  * Provides low-level access to CDP commands for enhanced element interaction,
  * DOM snapshots, network monitoring, and more.
  *
- * Equivalent to browser-use's direct CDP usage for element.py, enhanced_snapshot.py, etc.
  */
 public class CdpConnection implements AutoCloseable {
 

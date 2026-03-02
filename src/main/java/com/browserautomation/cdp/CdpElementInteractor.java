@@ -13,7 +13,6 @@ import java.util.Map;
  * Uses DOM.getContentQuads, DOM.getBoxModel, and getBoundingClientRect
  * for more reliable element clicking than Playwright's high-level API alone.
  *
- * Equivalent to browser-use's actor/element.py CDP interactions.
  */
 public class CdpElementInteractor {
 

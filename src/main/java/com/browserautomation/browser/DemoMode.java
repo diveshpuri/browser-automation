@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Demo mode visualization for browser automation.
- * Equivalent to browser-use's browser/demo_mode.py.
  *
  * When enabled, highlights elements before interaction and
  * slows down actions to make the automation visible and understandable.

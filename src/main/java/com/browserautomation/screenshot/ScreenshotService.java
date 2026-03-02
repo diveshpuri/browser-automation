@@ -17,7 +17,6 @@ import java.util.List;
 
 /**
  * Dedicated screenshot service for browser automation.
- * Equivalent to browser-use's screenshots module.
  *
  * Provides advanced screenshot capabilities including full-page captures,
  * element-specific screenshots, comparison, and organized storage.

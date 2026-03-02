@@ -14,7 +14,6 @@ import java.util.regex.Pattern;
  * Handles header-preferred splitting, JSON blob removal for SPAs,
  * and overlap prefixes for context carry.
  *
- * Equivalent to browser-use's markdown_extractor.py (530 lines).
  */
 public class MarkdownExtractor {
 

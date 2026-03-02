@@ -4,6 +4,7 @@ import com.browserautomation.action.ActionRegistry;
 import com.browserautomation.agent.Agent;
 import com.browserautomation.agent.AgentConfig;
 import com.browserautomation.agent.AgentResult;
+import com.browserautomation.browser.BrowserEngineType;
 import com.browserautomation.browser.BrowserProfile;
 import com.browserautomation.browser.BrowserSession;
 import com.browserautomation.llm.AnthropicProvider;
@@ -40,6 +41,15 @@ import com.browserautomation.config.BrowserAutomationConfig;
  *     .openAi("gpt-4o", "your-api-key")
  *     .browserProfile(new BrowserProfile().headless(false))
  *     .config(new AgentConfig().maxSteps(20).useVision(true))
+ *     .run();
+ * }</pre>
+ *
+ * <h2>With Selenium Engine</h2>
+ * <pre>{@code
+ * AgentResult result = BrowserAutomation.agent()
+ *     .task("Search for browser automation on Google")
+ *     .useSelenium()
+ *     .gemini("gemini-3-flash-preview")
  *     .run();
  * }</pre>
  *
@@ -307,6 +317,42 @@ public class BrowserAutomation {
          */
         public AgentBuilder llmProvider(LlmProvider provider) {
             this.llmProvider = provider;
+            return this;
+        }
+
+        /**
+         * Use Selenium as the browser automation engine.
+         * By default, Playwright is used.
+         */
+        public AgentBuilder useSelenium() {
+            if (this.browserProfile == null) {
+                this.browserProfile = new BrowserProfile();
+            }
+            this.browserProfile.useSelenium();
+            return this;
+        }
+
+        /**
+         * Use Playwright as the browser automation engine (this is the default).
+         */
+        public AgentBuilder usePlaywright() {
+            if (this.browserProfile == null) {
+                this.browserProfile = new BrowserProfile();
+            }
+            this.browserProfile.usePlaywright();
+            return this;
+        }
+
+        /**
+         * Set the browser engine type.
+         *
+         * @param engineType PLAYWRIGHT or SELENIUM
+         */
+        public AgentBuilder engineType(BrowserEngineType engineType) {
+            if (this.browserProfile == null) {
+                this.browserProfile = new BrowserProfile();
+            }
+            this.browserProfile.engineType(engineType);
             return this;
         }
 

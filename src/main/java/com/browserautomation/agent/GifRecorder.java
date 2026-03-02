@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -82,8 +83,7 @@ public class GifRecorder implements AutoCloseable {
         captureTask = scheduler.scheduleAtFixedRate(() -> {
             try {
                 if (session.isStarted()) {
-                    byte[] screenshot = session.getCurrentPage()
-                            .screenshot(new com.microsoft.playwright.Page.ScreenshotOptions().setFullPage(false));
+                    byte[] screenshot = Base64.getDecoder().decode(session.takeScreenshotBase64());
                     synchronized (frames) {
                         frames.add(screenshot);
                     }
@@ -100,8 +100,7 @@ public class GifRecorder implements AutoCloseable {
     public void captureFrame(BrowserSession session) {
         if (session.isStarted()) {
             try {
-                byte[] screenshot = session.getCurrentPage()
-                        .screenshot(new com.microsoft.playwright.Page.ScreenshotOptions().setFullPage(false));
+                byte[] screenshot = Base64.getDecoder().decode(session.takeScreenshotBase64());
                 synchronized (frames) {
                     frames.add(screenshot);
                 }

@@ -30,6 +30,7 @@ public class BrowserProfile {
     private int networkIdleWaitMs = 1000;
     private List<String> allowedDomains = new ArrayList<>();
     private List<String> prohibitedDomains = new ArrayList<>();
+    private BrowserEngineType engineType = BrowserEngineType.PLAYWRIGHT;
 
     public BrowserProfile() {
     }
@@ -122,6 +123,33 @@ public class BrowserProfile {
         return this;
     }
 
+    /**
+     * Set the browser engine type (PLAYWRIGHT or SELENIUM).
+     * Default is PLAYWRIGHT.
+     *
+     * @param engineType the engine type to use
+     */
+    public BrowserProfile engineType(BrowserEngineType engineType) {
+        this.engineType = engineType;
+        return this;
+    }
+
+    /**
+     * Shorthand to use Selenium as the browser engine.
+     */
+    public BrowserProfile useSelenium() {
+        this.engineType = BrowserEngineType.SELENIUM;
+        return this;
+    }
+
+    /**
+     * Shorthand to use Playwright as the browser engine.
+     */
+    public BrowserProfile usePlaywright() {
+        this.engineType = BrowserEngineType.PLAYWRIGHT;
+        return this;
+    }
+
     // Getters
 
     public boolean isHeadless() {
@@ -194,6 +222,10 @@ public class BrowserProfile {
 
     public List<String> getProhibitedDomains() {
         return prohibitedDomains;
+    }
+
+    public BrowserEngineType getEngineType() {
+        return engineType;
     }
 
     /**

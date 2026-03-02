@@ -85,11 +85,35 @@ public class GeminiProvider implements LlmProvider {
     @Override
     public LlmResponse chatCompletion(List<ChatMessage> messages, List<Map<String, Object>> tools) {
         try {
+            // Log request details
+            int systemMsgCount = 0, userMsgCount = 0, assistantMsgCount = 0, toolMsgCount = 0;
+            int totalTextChars = 0;
+            boolean hasImages = false;
+            for (ChatMessage msg : messages) {
+                switch (msg.getRole()) {
+                    case SYSTEM -> systemMsgCount++;
+                    case USER -> userMsgCount++;
+                    case ASSISTANT -> assistantMsgCount++;
+                    case TOOL -> toolMsgCount++;
+                }
+                for (ChatMessage.ContentPart part : msg.getContent()) {
+                    if (part.getType() == ChatMessage.ContentPart.Type.TEXT && part.getText() != null) {
+                        totalTextChars += part.getText().length();
+                    } else if (part.getType() == ChatMessage.ContentPart.Type.IMAGE) {
+                        hasImages = true;
+                    }
+                }
+            }
+            logger.info("[GEMINI] Request: model={}, messages={} (system={}, user={}, assistant={}, tool={}), "
+                            + "tools={}, totalTextChars={}, hasImages={}",
+                    model, messages.size(), systemMsgCount, userMsgCount, assistantMsgCount, toolMsgCount,
+                    tools != null ? tools.size() : 0, totalTextChars, hasImages);
+
             ObjectNode requestBody = buildRequestBody(messages, tools);
             String jsonBody = objectMapper.writeValueAsString(requestBody);
+            logger.info("[GEMINI] Request body size: {} bytes", jsonBody.length());
 
             String url = BASE_URL + "/models/" + model + ":generateContent?key=" + apiKey;
-            logger.debug("Sending request to Gemini API: model={}", model);
 
             Request request = new Request.Builder()
                     .url(url)
@@ -97,16 +121,36 @@ public class GeminiProvider implements LlmProvider {
                     .post(RequestBody.create(jsonBody, JSON_TYPE))
                     .build();
 
+            long apiStart = System.currentTimeMillis();
+            logger.info("[GEMINI] Calling Gemini API...");
             try (Response response = httpClient.newCall(request).execute()) {
+                long apiDuration = System.currentTimeMillis() - apiStart;
+                logger.info("[GEMINI] API responded in {}ms — HTTP {}", apiDuration, response.code());
+
                 if (!response.isSuccessful()) {
                     String errorBody = response.body() != null ? response.body().string() : "Unknown error";
+                    logger.error("[GEMINI] API ERROR (HTTP {}): {}", response.code(), errorBody);
                     throw new RuntimeException("Gemini API error (HTTP " + response.code() + "): " + errorBody);
                 }
 
                 String responseBody = response.body().string();
-                return parseResponse(responseBody);
+                logger.info("[GEMINI] Response body size: {} bytes", responseBody.length());
+                LlmResponse llmResponse = parseResponse(responseBody);
+                logger.info("[GEMINI] Parsed response: promptTokens={}, completionTokens={}, totalTokens={}, "
+                                + "hasContent={}, toolCalls={}",
+                        llmResponse.getPromptTokens(), llmResponse.getCompletionTokens(),
+                        llmResponse.getTotalTokens(),
+                        llmResponse.getContent() != null && !llmResponse.getContent().isEmpty(),
+                        llmResponse.hasToolCalls() ? llmResponse.getToolCalls().size() : 0);
+                if (llmResponse.hasToolCalls()) {
+                    for (LlmResponse.ToolCall tc : llmResponse.getToolCalls()) {
+                        logger.info("[GEMINI]   Tool call: {}({})", tc.getFunctionName(), tc.getArguments());
+                    }
+                }
+                return llmResponse;
             }
         } catch (IOException e) {
+            logger.error("[GEMINI] Communication failure: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to communicate with Gemini API: " + e.getMessage(), e);
         }
     }
@@ -243,8 +287,8 @@ public class GeminiProvider implements LlmProvider {
             }
         }
 
-        logger.debug("Gemini response: content_length={}, tool_calls={}, tokens={}",
-                textContent.length(), toolCalls.size(), promptTokens + completionTokens);
+        logger.debug("[GEMINI] Parsed: content_length={}, tool_calls={}, promptTokens={}, completionTokens={}",
+                textContent.length(), toolCalls.size(), promptTokens, completionTokens);
 
         return new LlmResponse(textContent.toString(), toolCalls, promptTokens, completionTokens);
     }

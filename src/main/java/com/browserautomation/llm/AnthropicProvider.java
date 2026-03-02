@@ -68,10 +68,12 @@ public class AnthropicProvider implements LlmProvider {
     @Override
     public LlmResponse chatCompletion(List<ChatMessage> messages, List<Map<String, Object>> tools) {
         try {
+            logger.info("[ANTHROPIC] Request: model={}, messages={}, tools={}",
+                    model, messages.size(), tools != null ? tools.size() : 0);
+
             ObjectNode requestBody = buildRequestBody(messages, tools);
             String jsonBody = objectMapper.writeValueAsString(requestBody);
-
-            logger.debug("Sending request to Anthropic API: model={}", model);
+            logger.info("[ANTHROPIC] Request body size: {} bytes", jsonBody.length());
 
             Request request = new Request.Builder()
                     .url(baseUrl + "/messages")
@@ -81,16 +83,36 @@ public class AnthropicProvider implements LlmProvider {
                     .post(RequestBody.create(jsonBody, JSON_TYPE))
                     .build();
 
+            long apiStart = System.currentTimeMillis();
+            logger.info("[ANTHROPIC] Calling Anthropic API...");
             try (Response response = httpClient.newCall(request).execute()) {
+                long apiDuration = System.currentTimeMillis() - apiStart;
+                logger.info("[ANTHROPIC] API responded in {}ms — HTTP {}", apiDuration, response.code());
+
                 if (!response.isSuccessful()) {
                     String errorBody = response.body() != null ? response.body().string() : "Unknown error";
+                    logger.error("[ANTHROPIC] API ERROR (HTTP {}): {}", response.code(), errorBody);
                     throw new RuntimeException("Anthropic API error (HTTP " + response.code() + "): " + errorBody);
                 }
 
                 String responseBody = response.body().string();
-                return parseResponse(responseBody);
+                logger.info("[ANTHROPIC] Response body size: {} bytes", responseBody.length());
+                LlmResponse llmResponse = parseResponse(responseBody);
+                logger.info("[ANTHROPIC] Parsed response: promptTokens={}, completionTokens={}, totalTokens={}, "
+                                + "hasContent={}, toolCalls={}",
+                        llmResponse.getPromptTokens(), llmResponse.getCompletionTokens(),
+                        llmResponse.getTotalTokens(),
+                        llmResponse.getContent() != null && !llmResponse.getContent().isEmpty(),
+                        llmResponse.hasToolCalls() ? llmResponse.getToolCalls().size() : 0);
+                if (llmResponse.hasToolCalls()) {
+                    for (LlmResponse.ToolCall tc : llmResponse.getToolCalls()) {
+                        logger.info("[ANTHROPIC]   Tool call: {}({})", tc.getFunctionName(), tc.getArguments());
+                    }
+                }
+                return llmResponse;
             }
         } catch (IOException e) {
+            logger.error("[ANTHROPIC] Communication failure: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to communicate with Anthropic API: " + e.getMessage(), e);
         }
     }
@@ -203,8 +225,8 @@ public class AnthropicProvider implements LlmProvider {
             }
         }
 
-        logger.debug("Anthropic response: content_length={}, tool_calls={}, tokens={}",
-                textContent.length(), toolCalls.size(), promptTokens + completionTokens);
+        logger.debug("[ANTHROPIC] Parsed: content_length={}, tool_calls={}, promptTokens={}, completionTokens={}",
+                textContent.length(), toolCalls.size(), promptTokens, completionTokens);
 
         return new LlmResponse(textContent.toString(), toolCalls, promptTokens, completionTokens);
     }

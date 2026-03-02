@@ -4,11 +4,15 @@ import com.browserautomation.action.ActionParameters;
 import com.browserautomation.action.ActionResult;
 import com.browserautomation.action.BrowserAction;
 import com.browserautomation.browser.BrowserSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Scroll the page up or down.
  */
 public class ScrollAction implements BrowserAction {
+
+    private static final Logger logger = LoggerFactory.getLogger(ScrollAction.class);
 
     @Override
     public String getName() {
@@ -31,9 +35,12 @@ public class ScrollAction implements BrowserAction {
         int pixels = params.getInt("pixels", 500);
         boolean down = "down".equalsIgnoreCase(direction);
         try {
+            logger.info("[ACTION:scroll] Scrolling {} by {} pixels", direction, pixels);
             session.scroll(down, pixels);
+            logger.info("[ACTION:scroll] Scroll completed ({} {}px)", direction, pixels);
             return ActionResult.success("Scrolled " + direction + " by " + pixels + " pixels");
         } catch (Exception e) {
+            logger.error("[ACTION:scroll] Failed to scroll {}: {}", direction, e.getMessage());
             return ActionResult.error("Failed to scroll: " + e.getMessage());
         }
     }

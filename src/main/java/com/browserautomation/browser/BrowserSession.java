@@ -43,8 +43,26 @@ public class BrowserSession implements AutoCloseable {
      * Start the browser session by launching Playwright and the browser.
      */
     public void start() {
-        logger.info("Starting browser session (headless={})", profile.isHeadless());
+        logger.info("[SESSION] Starting browser session");
+        logger.info("[SESSION]   headless={}, viewport={}x{}, acceptDownloads={}",
+                profile.isHeadless(), profile.getViewportWidth(), profile.getViewportHeight(),
+                profile.isAcceptDownloads());
+        if (profile.getUserAgent() != null) {
+            logger.info("[SESSION]   userAgent={}", profile.getUserAgent());
+        }
+        if (profile.getProxy() != null) {
+            logger.info("[SESSION]   proxy={}", profile.getProxy().getServer());
+        }
+        if (!profile.getArgs().isEmpty()) {
+            logger.info("[SESSION]   args={}", profile.getArgs());
+        }
+        if (profile.getChannel() != null) {
+            logger.info("[SESSION]   channel={}", profile.getChannel());
+        }
+
+        long startTime = System.currentTimeMillis();
         this.playwright = Playwright.create();
+        logger.info("[SESSION] Playwright instance created in {}ms", System.currentTimeMillis() - startTime);
 
         BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
                 .setHeadless(profile.isHeadless());
@@ -56,7 +74,9 @@ public class BrowserSession implements AutoCloseable {
             launchOptions.setChannel(profile.getChannel());
         }
 
+        long browserLaunchStart = System.currentTimeMillis();
         this.browser = playwright.chromium().launch(launchOptions);
+        logger.info("[SESSION] Chromium browser launched in {}ms", System.currentTimeMillis() - browserLaunchStart);
 
         Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
                 .setViewportSize(profile.getViewportWidth(), profile.getViewportHeight())
@@ -74,13 +94,16 @@ public class BrowserSession implements AutoCloseable {
         }
 
         this.context = browser.newContext(contextOptions);
+        logger.info("[SESSION] Browser context created");
 
         if (!profile.getExtraHeaders().isEmpty()) {
             context.setExtraHTTPHeaders(profile.getExtraHeaders());
+            logger.info("[SESSION] Extra headers set: {}", profile.getExtraHeaders().keySet());
         }
 
         this.currentPage = context.newPage();
-        logger.info("Browser session started successfully");
+        long totalTime = System.currentTimeMillis() - startTime;
+        logger.info("[SESSION] Browser session started successfully in {}ms (page ready)", totalTime);
     }
 
     /**
@@ -90,9 +113,13 @@ public class BrowserSession implements AutoCloseable {
      * @param videoDir the directory to save recorded videos
      */
     public void startWithVideoRecording(Path videoDir) {
-        logger.info("Starting browser session with video recording (headless={}, videoDir={})",
-                profile.isHeadless(), videoDir);
+        logger.info("[SESSION] Starting browser session with VIDEO RECORDING");
+        logger.info("[SESSION]   headless={}, viewport={}x{}, videoDir={}",
+                profile.isHeadless(), profile.getViewportWidth(), profile.getViewportHeight(), videoDir);
+
+        long startTime = System.currentTimeMillis();
         this.playwright = Playwright.create();
+        logger.info("[SESSION] Playwright instance created in {}ms", System.currentTimeMillis() - startTime);
 
         BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
                 .setHeadless(profile.isHeadless());
@@ -104,7 +131,9 @@ public class BrowserSession implements AutoCloseable {
             launchOptions.setChannel(profile.getChannel());
         }
 
+        long browserLaunchStart = System.currentTimeMillis();
         this.browser = playwright.chromium().launch(launchOptions);
+        logger.info("[SESSION] Chromium browser launched in {}ms", System.currentTimeMillis() - browserLaunchStart);
 
         Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
                 .setViewportSize(profile.getViewportWidth(), profile.getViewportHeight())
@@ -124,23 +153,29 @@ public class BrowserSession implements AutoCloseable {
         }
 
         this.context = browser.newContext(contextOptions);
+        logger.info("[SESSION] Browser context created with video recording enabled ({}x{})",
+                profile.getViewportWidth(), profile.getViewportHeight());
 
         if (!profile.getExtraHeaders().isEmpty()) {
             context.setExtraHTTPHeaders(profile.getExtraHeaders());
         }
 
         this.currentPage = context.newPage();
-        logger.info("Browser session started with video recording");
+        long totalTime = System.currentTimeMillis() - startTime;
+        logger.info("[SESSION] Browser session started with video recording in {}ms", totalTime);
     }
 
     /**
      * Navigate the current page to a URL.
      */
     public void navigateTo(String url) {
-        logger.info("Navigating to: {}", url);
+        logger.info("[NAV] Navigating to: {}", url);
         ensureStarted();
+        long start = System.currentTimeMillis();
         currentPage.navigate(url);
         waitForPageLoad();
+        logger.info("[NAV] Navigation completed in {}ms — final URL: {}",
+                System.currentTimeMillis() - start, currentPage.url());
     }
 
     /**
@@ -160,9 +195,12 @@ public class BrowserSession implements AutoCloseable {
      */
     public BrowserState getState(boolean includeScreenshot) {
         ensureStarted();
+        long start = System.currentTimeMillis();
+        logger.debug("[STATE] Extracting browser state (includeScreenshot={})", includeScreenshot);
 
         String url = currentPage.url();
         String title = currentPage.title();
+        logger.debug("[STATE] Current page — URL: {}, Title: '{}'", url, title);
 
         // Collect tab info
         List<BrowserState.TabInfo> tabs = new ArrayList<>();
@@ -188,6 +226,11 @@ public class BrowserSession implements AutoCloseable {
         // Get page info
         BrowserState.PageInfo pageInfo = getPageInfo();
 
+        long elapsed = System.currentTimeMillis() - start;
+        logger.debug("[STATE] Browser state extracted in {}ms — {} tabs, {} elements, screenshot={}",
+                elapsed, tabs.size(),
+                domState != null ? domState.getElements().size() : 0,
+                screenshot != null ? screenshot.length + " bytes" : "none");
         return new BrowserState(url, title, tabs, activeIndex, screenshot, domState, pageInfo);
     }
 
@@ -221,17 +264,23 @@ public class BrowserSession implements AutoCloseable {
         DomState state = domService.extractState(currentPage);
         DomElement element = state.getElementByIndex(elementIndex);
         if (element == null) {
+            logger.warn("[CLICK] Element with index {} not found in {} available elements",
+                    elementIndex, state.getElements().size());
             throw new RuntimeException("Element with index " + elementIndex + " not found");
         }
-        logger.info("Clicking element [{}]: {}", elementIndex, element.getDescription());
+        logger.info("[CLICK] Clicking element [{}]: {} (tag={}, selector={})",
+                elementIndex, element.getDescription(), element.getTagName(), element.buildSelector());
 
         String selector = element.buildSelector();
         try {
             currentPage.locator(selector).first().click(new Locator.ClickOptions().setTimeout(5000));
+            logger.info("[CLICK] Direct click succeeded on element [{}]", elementIndex);
         } catch (Exception e) {
             // Fallback: try JavaScript click
-            logger.debug("Direct click failed, trying JS click for element [{}]", elementIndex);
+            logger.warn("[CLICK] Direct click failed on element [{}]: {} — falling back to JS click",
+                    elementIndex, e.getMessage());
             currentPage.evaluate("(selector) => { document.querySelector(selector)?.click(); }", selector);
+            logger.info("[CLICK] JS click fallback executed for element [{}]", elementIndex);
         }
         waitAfterAction();
     }
@@ -244,14 +293,18 @@ public class BrowserSession implements AutoCloseable {
         DomState state = domService.extractState(currentPage);
         DomElement element = state.getElementByIndex(elementIndex);
         if (element == null) {
+            logger.warn("[TYPE] Element with index {} not found in {} available elements",
+                    elementIndex, state.getElements().size());
             throw new RuntimeException("Element with index " + elementIndex + " not found");
         }
-        logger.info("Typing into element [{}]: '{}'", elementIndex, text);
+        logger.info("[TYPE] Typing into element [{}]: '{}' (tag={}, selector={})",
+                elementIndex, text, element.getTagName(), element.buildSelector());
 
         String selector = element.buildSelector();
         Locator locator = currentPage.locator(selector).first();
         locator.click();
         locator.fill(text);
+        logger.info("[TYPE] Text input completed for element [{}]", elementIndex);
         waitAfterAction();
     }
 
@@ -495,19 +548,25 @@ public class BrowserSession implements AutoCloseable {
 
     @Override
     public void close() {
-        logger.info("Closing browser session");
+        logger.info("[SESSION] Closing browser session");
+        long start = System.currentTimeMillis();
         try {
             if (context != null) {
+                logger.info("[SESSION] Closing browser context (videos will be finalized)");
                 context.close();
+                logger.info("[SESSION] Browser context closed");
             }
             if (browser != null) {
                 browser.close();
+                logger.info("[SESSION] Browser closed");
             }
             if (playwright != null) {
                 playwright.close();
+                logger.info("[SESSION] Playwright closed");
             }
+            logger.info("[SESSION] Browser session closed in {}ms", System.currentTimeMillis() - start);
         } catch (Exception e) {
-            logger.warn("Error closing browser session: {}", e.getMessage());
+            logger.warn("[SESSION] Error closing browser session: {}", e.getMessage());
         }
     }
 }

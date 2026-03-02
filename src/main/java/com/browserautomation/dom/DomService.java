@@ -137,26 +137,43 @@ public class DomService {
      */
     @SuppressWarnings("unchecked")
     public DomState extractState(Page page) {
-        logger.debug("Extracting DOM state from page: {}", page.url());
+        long start = System.currentTimeMillis();
+        logger.info("[DOM] Extracting DOM state from page: {}", page.url());
 
         String js = EXTRACT_ELEMENTS_JS.replace("SELECTOR_PLACEHOLDER",
                 INTERACTIVE_SELECTOR.replace("'", "\\'"));
 
         List<DomElement> elements = new ArrayList<>();
         try {
+            long evalStart = System.currentTimeMillis();
             Object result = page.evaluate(js);
+            long evalDuration = System.currentTimeMillis() - evalStart;
+            logger.info("[DOM] JavaScript evaluation completed in {}ms", evalDuration);
+
             if (result instanceof List) {
                 List<Map<String, Object>> rawElements = (List<Map<String, Object>>) result;
+                logger.info("[DOM] Raw elements found: {}", rawElements.size());
                 for (Map<String, Object> raw : rawElements) {
                     DomElement element = parseElement(raw);
                     elements.add(element);
                 }
             }
         } catch (Exception e) {
-            logger.warn("Failed to extract DOM state: {}", e.getMessage());
+            logger.warn("[DOM] Failed to extract DOM state: {} - {}", e.getClass().getSimpleName(), e.getMessage());
         }
 
-        logger.debug("Extracted {} interactive elements", elements.size());
+        long elapsed = System.currentTimeMillis() - start;
+        logger.info("[DOM] Extracted {} interactive elements in {}ms", elements.size(), elapsed);
+
+        // Log element breakdown by tag
+        if (!elements.isEmpty() && logger.isDebugEnabled()) {
+            Map<String, Integer> tagCounts = new java.util.LinkedHashMap<>();
+            for (DomElement el : elements) {
+                tagCounts.merge(el.getTagName(), 1, Integer::sum);
+            }
+            logger.debug("[DOM] Element breakdown: {}", tagCounts);
+        }
+
         return new DomState(elements);
     }
 

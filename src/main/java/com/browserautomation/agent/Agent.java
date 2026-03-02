@@ -62,44 +62,72 @@ public class Agent implements AutoCloseable {
      */
     public AgentResult run() {
         long startTime = System.currentTimeMillis();
-        logger.info("Starting agent with task: {}", task);
+        logger.info("========================================");
+        logger.info("AGENT STARTING");
+        logger.info("  Task: {}", task);
+        logger.info("  LLM Provider: {} (model={})", llmProvider.getProviderName(), llmProvider.getModelName());
+        logger.info("  Config: maxSteps={}, maxFailures={}, maxActionsPerStep={}, useVision={}, useThinking={}",
+                config.getMaxSteps(), config.getMaxFailures(), config.getMaxActionsPerStep(),
+                config.isUseVision(), config.isUseThinking());
+        logger.info("  Vision support: {} (provider={}, config={})",
+                config.isUseVision() && llmProvider.supportsVision(),
+                llmProvider.supportsVision(), config.isUseVision());
+        logger.info("========================================");
 
         try {
             // Start browser if we own it
             if (ownsBrowserSession) {
+                logger.info("[BROWSER] Creating and starting owned browser session (headless={})",
+                        browserProfile.isHeadless());
                 browserSession = new BrowserSession(browserProfile);
                 browserSession.start();
+                logger.info("[BROWSER] Browser session started successfully");
+            } else {
+                logger.info("[BROWSER] Using externally provided browser session (started={})",
+                        browserSession.isStarted());
             }
 
             // Build system prompt
             SystemPrompt systemPrompt = new SystemPrompt(config, actionRegistry);
             String systemMessage = systemPrompt.build();
+            logger.info("[INIT] System prompt built ({} chars), {} actions registered",
+                    systemMessage.length(), actionRegistry.getAllActions().size());
 
             // Initialize conversation
             List<ChatMessage> messages = new ArrayList<>();
             messages.add(ChatMessage.system(systemMessage));
             messages.add(ChatMessage.user("Task: " + task));
+            logger.info("[INIT] Conversation initialized with {} messages", messages.size());
 
             // Main agent loop
+            logger.info("[LOOP] Entering main agent loop (maxSteps={})", config.getMaxSteps());
             while (!state.isCompleted() && !state.isFailed()) {
                 // Check step limit
                 if (state.getCurrentStep() >= config.getMaxSteps()) {
-                    logger.warn("Reached maximum steps ({}), stopping", config.getMaxSteps());
+                    logger.warn("[LOOP] STOPPING: Reached maximum steps ({}/{})",
+                            state.getCurrentStep(), config.getMaxSteps());
                     state.markFailed("Reached maximum steps without completing the task");
                     break;
                 }
 
                 // Check failure limit
                 if (state.getConsecutiveFailures() >= config.getMaxFailures()) {
-                    logger.warn("Reached maximum consecutive failures ({}), stopping", config.getMaxFailures());
+                    logger.warn("[LOOP] STOPPING: Reached maximum consecutive failures ({}/{})",
+                            state.getConsecutiveFailures(), config.getMaxFailures());
                     state.markFailed("Too many consecutive failures");
                     break;
                 }
 
+                logger.info("[LOOP] State: step={}/{}, consecutiveFailures={}/{}, totalTokens={}",
+                        state.getCurrentStep(), config.getMaxSteps(),
+                        state.getConsecutiveFailures(), config.getMaxFailures(),
+                        state.getTotalTokensUsed());
+
                 try {
                     executeStep(messages);
                 } catch (Exception e) {
-                    logger.error("Step {} failed with exception: {}", state.getCurrentStep() + 1, e.getMessage());
+                    logger.error("[LOOP] Step {} EXCEPTION: {} - {}",
+                            state.getCurrentStep() + 1, e.getClass().getSimpleName(), e.getMessage());
                     state.recordStep(new AgentState.AgentStep(
                             state.getCurrentStep() + 1, null, "error",
                             null, e.getMessage(), 0, 0));
@@ -107,13 +135,21 @@ public class Agent implements AutoCloseable {
             }
 
         } catch (Exception e) {
-            logger.error("Agent execution failed: {}", e.getMessage(), e);
+            logger.error("[FATAL] Agent execution failed with {}: {}",
+                    e.getClass().getSimpleName(), e.getMessage(), e);
             state.markFailed("Agent execution failed: " + e.getMessage());
         }
 
         long duration = System.currentTimeMillis() - startTime;
-        logger.info("Agent finished in {}ms after {} steps (success={})",
-                duration, state.getCurrentStep(), state.isCompleted());
+        logger.info("========================================");
+        logger.info("AGENT FINISHED");
+        logger.info("  Success: {}", state.isCompleted());
+        logger.info("  Result: {}", state.getFinalResult());
+        logger.info("  Total Steps: {}", state.getCurrentStep());
+        logger.info("  Total Tokens: {}", state.getTotalTokensUsed());
+        logger.info("  Duration: {}ms", duration);
+        logger.info("  History: {} steps recorded", state.getHistory().size());
+        logger.info("========================================");
 
         return new AgentResult(
                 state.isCompleted(),
@@ -131,50 +167,93 @@ public class Agent implements AutoCloseable {
     private void executeStep(List<ChatMessage> messages) {
         long stepStart = System.currentTimeMillis();
         int stepNum = state.getCurrentStep() + 1;
-        logger.info("--- Step {} ---", stepNum);
+        logger.info("╔══════════════════════════════════════");
+        logger.info("║ STEP {}/{}", stepNum, config.getMaxSteps());
+        logger.info("╚══════════════════════════════════════");
 
         // 1. Get current browser state
-        BrowserState browserState = browserSession.getState(config.isUseVision() && llmProvider.supportsVision());
+        boolean includeScreenshot = config.isUseVision() && llmProvider.supportsVision();
+        logger.info("[STEP {}] Capturing browser state (includeScreenshot={})", stepNum, includeScreenshot);
+        long browserStateStart = System.currentTimeMillis();
+        BrowserState browserState = browserSession.getState(includeScreenshot);
+        long browserStateDuration = System.currentTimeMillis() - browserStateStart;
+        logger.info("[STEP {}] Browser state captured in {}ms — URL: {}, Title: '{}'",
+                stepNum, browserStateDuration, browserState.getUrl(), truncate(browserState.getTitle(), 80));
+        logger.info("[STEP {}] DOM: {} interactive elements, Tabs: {}, Active tab: {}",
+                stepNum,
+                browserState.getDomState() != null ? browserState.getDomState().getElements().size() : 0,
+                browserState.getTabs().size(), browserState.getActiveTabIndex());
+        if (browserState.getPageInfo() != null) {
+            BrowserState.PageInfo pi = browserState.getPageInfo();
+            logger.info("[STEP {}] Page: scrollY={}, pageHeight={}, viewportHeight={}",
+                    stepNum, pi.getScrollY(), pi.getPageHeight(), pi.getViewportHeight());
+        }
+        if (includeScreenshot && browserState.getScreenshot() != null) {
+            logger.info("[STEP {}] Screenshot captured ({} bytes)",
+                    stepNum, browserState.getScreenshot().length);
+        }
 
         // 2. Build state message for the LLM
         String stateDescription = buildStateDescription(browserState);
+        logger.info("[STEP {}] State description built ({} chars)", stepNum, stateDescription.length());
 
         if (config.isUseVision() && browserState.getScreenshot() != null && llmProvider.supportsVision()) {
             String base64Screenshot = Base64.getEncoder().encodeToString(browserState.getScreenshot());
             messages.add(ChatMessage.userWithImage(stateDescription, base64Screenshot));
+            logger.info("[STEP {}] Added user message with screenshot to conversation", stepNum);
         } else {
             messages.add(ChatMessage.user(stateDescription));
+            logger.info("[STEP {}] Added user message (text only) to conversation", stepNum);
         }
 
         // 3. Call LLM
+        logger.info("[STEP {}] Calling LLM ({}/{}) with {} messages and {} tool definitions",
+                stepNum, llmProvider.getProviderName(), llmProvider.getModelName(),
+                messages.size(), actionRegistry.getToolDefinitions().size());
+        long llmStart = System.currentTimeMillis();
         List<Map<String, Object>> toolDefs = actionRegistry.getToolDefinitions();
         LlmResponse llmResponse = llmProvider.chatCompletion(messages, toolDefs);
+        long llmDuration = System.currentTimeMillis() - llmStart;
+        logger.info("[STEP {}] LLM responded in {}ms — promptTokens={}, completionTokens={}, totalTokens={}",
+                stepNum, llmDuration, llmResponse.getPromptTokens(),
+                llmResponse.getCompletionTokens(), llmResponse.getTotalTokens());
+        logger.info("[STEP {}] LLM response: hasContent={}, hasToolCalls={}, toolCallCount={}",
+                stepNum,
+                llmResponse.getContent() != null && !llmResponse.getContent().isEmpty(),
+                llmResponse.hasToolCalls(),
+                llmResponse.getToolCalls() != null ? llmResponse.getToolCalls().size() : 0);
 
         // 4. Process LLM response
         String thinking = llmResponse.getContent();
         if (thinking != null && !thinking.isEmpty()) {
-            logger.info("LLM thinking: {}", truncate(thinking, 200));
+            logger.info("[STEP {}] LLM thinking: {}", stepNum, truncate(thinking, 300));
             messages.add(ChatMessage.assistant(thinking));
         }
 
         // 5. Execute tool calls
         if (llmResponse.hasToolCalls()) {
+            logger.info("[STEP {}] Executing {} tool call(s) (max {} per step)",
+                    stepNum, llmResponse.getToolCalls().size(), config.getMaxActionsPerStep());
             int actionsExecuted = 0;
             for (LlmResponse.ToolCall toolCall : llmResponse.getToolCalls()) {
                 if (actionsExecuted >= config.getMaxActionsPerStep()) {
-                    logger.warn("Reached max actions per step ({}), skipping remaining", config.getMaxActionsPerStep());
+                    logger.warn("[STEP {}] Reached max actions per step ({}), skipping remaining {} tool calls",
+                            stepNum, config.getMaxActionsPerStep(),
+                            llmResponse.getToolCalls().size() - actionsExecuted);
                     break;
                 }
 
                 String actionName = toolCall.getFunctionName();
                 Map<String, Object> args = toolCall.getArguments();
 
-                logger.info("Executing action: {}({})", actionName, args);
+                logger.info("[STEP {}] ACTION {}/{}: {}({})",
+                        stepNum, actionsExecuted + 1, llmResponse.getToolCalls().size(),
+                        actionName, args);
 
                 BrowserAction action = actionRegistry.getAction(actionName);
                 if (action == null) {
                     String error = "Unknown action: " + actionName;
-                    logger.warn(error);
+                    logger.warn("[STEP {}] ACTION FAILED: {} — action not found in registry", stepNum, actionName);
                     messages.add(ChatMessage.tool(error, toolCall.getId()));
                     state.recordStep(new AgentState.AgentStep(
                             stepNum, thinking, actionName, null, error,
@@ -182,8 +261,19 @@ public class Agent implements AutoCloseable {
                     continue;
                 }
 
+                long actionStart = System.currentTimeMillis();
                 ActionResult result = action.execute(browserSession, new ActionParameters(args));
+                long actionDuration = System.currentTimeMillis() - actionStart;
                 actionsExecuted++;
+
+                if (result.isSuccess()) {
+                    logger.info("[STEP {}] ACTION SUCCEEDED: {} in {}ms — result: {}",
+                            stepNum, actionName, actionDuration,
+                            truncate(result.getExtractedContent() != null ? result.getExtractedContent() : "OK", 200));
+                } else {
+                    logger.warn("[STEP {}] ACTION FAILED: {} in {}ms — error: {}",
+                            stepNum, actionName, actionDuration, result.getError());
+                }
 
                 // Record step
                 state.recordStep(new AgentState.AgentStep(
@@ -201,23 +291,25 @@ public class Agent implements AutoCloseable {
 
                 // Check if done
                 if (result.isDone()) {
-                    logger.info("Task completed: {}", result.getExtractedContent());
+                    logger.info("[STEP {}] TASK COMPLETED — result: {}", stepNum, result.getExtractedContent());
                     state.markCompleted(result.getExtractedContent());
+                    long stepDuration = System.currentTimeMillis() - stepStart;
+                    logger.info("[STEP {}] Step completed in {}ms (browserState={}ms, llm={}ms, action={}ms)",
+                            stepNum, stepDuration, browserStateDuration, llmDuration, actionDuration);
                     return;
-                }
-
-                if (!result.isSuccess()) {
-                    logger.warn("Action failed: {}", result.getError());
                 }
             }
         } else {
             // No tool calls - LLM just responded with text
-            // This shouldn't normally happen with tool calling, but handle it gracefully
-            logger.debug("LLM responded without tool calls");
+            logger.warn("[STEP {}] LLM responded WITHOUT tool calls — treating as no-op", stepNum);
             state.recordStep(new AgentState.AgentStep(
                     stepNum, thinking, "none", thinking, null,
                     llmResponse.getTotalTokens(), System.currentTimeMillis() - stepStart));
         }
+
+        long stepDuration = System.currentTimeMillis() - stepStart;
+        logger.info("[STEP {}] Step completed in {}ms (browserState={}ms, llm={}ms)",
+                stepNum, stepDuration, browserStateDuration, llmDuration);
     }
 
     /**

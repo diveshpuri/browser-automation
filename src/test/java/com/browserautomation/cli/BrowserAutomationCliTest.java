@@ -35,10 +35,10 @@ class BrowserAutomationCliTest {
     @Test
     void testParseProvider() {
         BrowserAutomationCli cli = new BrowserAutomationCli();
-        cli.parseArgs(new String[]{"--provider", "gemini", "--model", "gemini-2.0-flash-exp"});
+        cli.parseArgs(new String[]{"--provider", "gemini", "--model", "gemini-3-flash-preview"});
 
         assertEquals("gemini", cli.getProvider());
-        assertEquals("gemini-2.0-flash-exp", cli.getModel());
+        assertEquals("gemini-3-flash-preview", cli.getModel());
     }
 
     @Test

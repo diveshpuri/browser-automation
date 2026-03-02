@@ -69,7 +69,7 @@ class TokenPricingTest {
     void testMultipleModelsHavePricing() {
         assertNotNull(TokenPricing.getPricing("gpt-4o"));
         assertNotNull(TokenPricing.getPricing("claude-sonnet-4-20250514"));
-        assertNotNull(TokenPricing.getPricing("gemini-2.0-flash-exp"));
+        assertNotNull(TokenPricing.getPricing("gemini-3-flash-preview"));
         assertNotNull(TokenPricing.getPricing("deepseek-chat"));
         assertNotNull(TokenPricing.getPricing("llama-3.3-70b-versatile"));
         assertNotNull(TokenPricing.getPricing("mistral-large-latest"));

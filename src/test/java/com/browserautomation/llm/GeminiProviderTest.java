@@ -8,10 +8,10 @@ class GeminiProviderTest {
 
     @Test
     void testConstructorMinimal() {
-        GeminiProvider provider = new GeminiProvider("test-key", "gemini-2.0-flash-exp");
+        GeminiProvider provider = new GeminiProvider("test-key", "gemini-3-flash-preview");
 
         assertEquals("gemini", provider.getProviderName());
-        assertEquals("gemini-2.0-flash-exp", provider.getModelName());
+        assertEquals("gemini-3-flash-preview", provider.getModelName());
     }
 
     @Test
@@ -24,7 +24,7 @@ class GeminiProviderTest {
 
     @Test
     void testSupportsVision() {
-        GeminiProvider flash = new GeminiProvider("key", "gemini-2.0-flash-exp");
+        GeminiProvider flash = new GeminiProvider("key", "gemini-3-flash-preview");
         assertTrue(flash.supportsVision());
 
         GeminiProvider pro15 = new GeminiProvider("key", "gemini-1.5-pro");

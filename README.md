@@ -83,7 +83,7 @@ AgentResult result = BrowserAutomation.agent()
 // Set GEMINI_API_KEY environment variable
 AgentResult result = BrowserAutomation.agent()
     .task("Summarize the top news on BBC")
-    .gemini("gemini-2.0-flash-exp")
+    .gemini("gemini-3-flash-preview")
     .run();
 ```
 

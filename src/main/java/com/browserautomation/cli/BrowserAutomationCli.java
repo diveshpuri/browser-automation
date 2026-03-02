@@ -250,7 +250,7 @@ public class BrowserAutomationCli {
         System.out.println("  --help, -h           Show this help message\n");
         System.out.println("Examples:");
         System.out.println("  browser-automation --task \"Search for Java tutorials on Google\"");
-        System.out.println("  browser-automation --provider gemini --model gemini-2.0-flash-exp --interactive");
+        System.out.println("  browser-automation --provider gemini --model gemini-3-flash-preview --interactive");
         System.out.println("  browser-automation --provider ollama --model qwen2.5 \"Find the weather in NYC\"");
     }
 

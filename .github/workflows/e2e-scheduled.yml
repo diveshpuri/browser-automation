@@ -87,7 +87,7 @@ jobs:
           # Search for the log file in the downloaded artifacts
           LOG_FILE=$(find artifacts -name "execution-log.txt" 2>/dev/null | head -1)
           if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
-            LOG_CONTENT=$(head -c 5000 "$LOG_FILE")
+            LOG_CONTENT=$(head -c 50000 "$LOG_FILE")
             echo "log_content<<EOF_LOG" >> $GITHUB_OUTPUT
             echo "$LOG_CONTENT" >> $GITHUB_OUTPUT
             echo "EOF_LOG" >> $GITHUB_OUTPUT

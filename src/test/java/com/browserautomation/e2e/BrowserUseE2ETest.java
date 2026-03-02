@@ -8,14 +8,22 @@ import com.browserautomation.browser.BrowserProfile;
 import com.browserautomation.browser.BrowserSession;
 import com.browserautomation.scriptgen.PlaywrightScriptGenerator;
 import com.browserautomation.scriptgen.ScriptGeneratorConfig;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.FileAppender;
+import ch.qos.logback.core.ConsoleAppender;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -67,6 +75,70 @@ class BrowserUseE2ETest {
                     : "target/e2e-artifacts");
 
     /**
+     * Set up a logback FileAppender that captures ALL SLF4J log output from
+     * com.browserautomation.* into the given file. This ensures execution-log.txt
+     * contains the comprehensive logs from Agent, BrowserSession, LLM providers,
+     * DomService, Actions, etc.
+     *
+     * Also attaches a ConsoleAppender targeting System.out so logs appear in maven output.
+     *
+     * @return the FileAppender (caller should stop it via teardownLogCapture in finally block)
+     */
+    private FileAppender<ILoggingEvent> setupLogCapture(Path logFile) {
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+
+        // File appender: captures all SLF4J logs into execution-log.txt
+        PatternLayoutEncoder fileEncoder = new PatternLayoutEncoder();
+        fileEncoder.setContext(loggerContext);
+        fileEncoder.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
+        fileEncoder.start();
+
+        FileAppender<ILoggingEvent> fileAppender = new FileAppender<>();
+        fileAppender.setContext(loggerContext);
+        fileAppender.setName("E2E_FILE");
+        fileAppender.setFile(logFile.toAbsolutePath().toString());
+        fileAppender.setAppend(true);
+        fileAppender.setEncoder(fileEncoder);
+        fileAppender.start();
+
+        // Console appender: ensures logs also appear in maven test output (stdout)
+        PatternLayoutEncoder consoleEncoder = new PatternLayoutEncoder();
+        consoleEncoder.setContext(loggerContext);
+        consoleEncoder.setPattern("%d{HH:mm:ss.SSS} %-5level [%logger{20}] %msg%n");
+        consoleEncoder.start();
+
+        ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
+        consoleAppender.setContext(loggerContext);
+        consoleAppender.setName("E2E_CONSOLE");
+        consoleAppender.setEncoder(consoleEncoder);
+        consoleAppender.setTarget("System.out");
+        consoleAppender.start();
+
+        // Attach both appenders to com.browserautomation logger
+        Logger baLogger = loggerContext.getLogger("com.browserautomation");
+        baLogger.addAppender(fileAppender);
+        baLogger.addAppender(consoleAppender);
+        baLogger.setLevel(ch.qos.logback.classic.Level.INFO);
+        baLogger.setAdditive(false);
+
+        return fileAppender;
+    }
+
+    /**
+     * Remove E2E appenders from the logger to avoid polluting other tests.
+     */
+    private void teardownLogCapture(FileAppender<ILoggingEvent> fileAppender) {
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        Logger baLogger = loggerContext.getLogger("com.browserautomation");
+        baLogger.detachAppender("E2E_FILE");
+        baLogger.detachAppender("E2E_CONSOLE");
+        baLogger.setAdditive(true);
+        if (fileAppender != null) {
+            fileAppender.stop();
+        }
+    }
+
+    /**
      * E2E test using Google Gemini — direct equivalent of the Python example.
      *
      * Python:
@@ -82,21 +154,34 @@ class BrowserUseE2ETest {
         Path videoDir = ARTIFACTS_DIR.resolve("videos");
         Files.createDirectories(videoDir);
 
+        // --- Set up log capture BEFORE any automation runs ---
+        // Write header into the log file, then FileAppender will append SLF4J output.
+        Path logFile = ARTIFACTS_DIR.resolve("execution-log.txt");
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        StringBuilder logHeader = new StringBuilder();
+        logHeader.append("=== E2E Test Execution Log ===\n");
+        logHeader.append("Timestamp: ").append(timestamp).append("\n");
+        logHeader.append("Task: ").append(TASK).append("\n");
+        logHeader.append("Provider: Google Gemini (gemini-3-flash-preview)\n");
+        logHeader.append("Vision: enabled\n");
+        logHeader.append("Max Steps: 15\n");
+        logHeader.append("==============================\n\n");
+        logHeader.append("--- Comprehensive SLF4J Execution Trace ---\n\n");
+        Files.writeString(logFile, logHeader.toString(), StandardCharsets.UTF_8);
+
+        // Print header to console
+        System.out.println(logHeader);
+
+        // Attach file + console appenders so ALL SLF4J logs from Agent, BrowserSession,
+        // LLM providers, DomService, Actions are captured into execution-log.txt AND
+        // printed to stdout (visible in maven output and CI logs).
+        FileAppender<ILoggingEvent> fileAppender = setupLogCapture(logFile);
+
         BrowserSession browser = BrowserAutomation.createBrowserSession(
                 new BrowserProfile()
                         .headless(true)
                         .viewportSize(1280, 720));
         browser.startWithVideoRecording(videoDir);
-
-        StringBuilder executionLog = new StringBuilder();
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        executionLog.append("=== E2E Test Execution Log ===\n");
-        executionLog.append("Timestamp: ").append(timestamp).append("\n");
-        executionLog.append("Task: ").append(TASK).append("\n");
-        executionLog.append("Provider: Google Gemini (gemini-3-flash-preview)\n");
-        executionLog.append("Vision: enabled\n");
-        executionLog.append("Max Steps: 15\n");
-        executionLog.append("==============================\n\n");
 
         AgentResult result = null;
         long startTime = System.currentTimeMillis();
@@ -118,23 +203,33 @@ class BrowserUseE2ETest {
             testPassed = true;
         } catch (Exception e) {
             errorMessage = e.getClass().getSimpleName() + ": " + e.getMessage();
-            executionLog.append("!!! TEST FAILED !!!\n");
-            executionLog.append("Error: ").append(errorMessage).append("\n\n");
             throw e;
         } finally {
             long totalElapsed = System.currentTimeMillis() - startTime;
 
-            // --- 1. Write detailed execution log ---
-            if (result != null) {
-                appendExecutionSummary(executionLog, result, totalElapsed);
-                appendStepDetails(executionLog, result);
-            } else {
-                executionLog.append("Result: UNAVAILABLE (agent did not return a result)\n");
-                executionLog.append("Total Elapsed: ").append(totalElapsed).append("ms\n");
+            // --- Stop log capture so we can append summary to the file ---
+            teardownLogCapture(fileAppender);
+
+            // --- 1. Append execution summary and step details to log file ---
+            StringBuilder logFooter = new StringBuilder();
+            logFooter.append("\n\n--- End of SLF4J Execution Trace ---\n\n");
+
+            if (!testPassed && errorMessage != null) {
+                logFooter.append("!!! TEST FAILED !!!\n");
+                logFooter.append("Error: ").append(errorMessage).append("\n\n");
             }
 
-            Path logFile = ARTIFACTS_DIR.resolve("execution-log.txt");
-            Files.writeString(logFile, executionLog.toString(), StandardCharsets.UTF_8);
+            if (result != null) {
+                appendExecutionSummary(logFooter, result, totalElapsed);
+                appendStepDetails(logFooter, result);
+            } else {
+                logFooter.append("Result: UNAVAILABLE (agent did not return a result)\n");
+                logFooter.append("Total Elapsed: ").append(totalElapsed).append("ms\n");
+            }
+
+            // Append footer to existing log file (header + SLF4J trace already written)
+            Files.writeString(logFile, logFooter.toString(), StandardCharsets.UTF_8,
+                    StandardOpenOption.APPEND);
             System.out.println("[Gemini] Execution log saved to: " + logFile.toAbsolutePath());
 
             // --- 2. Write execution summary (machine-readable JSON) ---
@@ -180,20 +275,54 @@ class BrowserUseE2ETest {
                 }
             }
 
-            // --- 4. Print console summary ---
-            System.out.println("\n========== E2E EXECUTION SUMMARY ==========");
-            System.out.println("[Gemini] Status: " + (testPassed ? "PASSED" : "FAILED"));
+            // --- 4. Print comprehensive console summary ---
+            System.out.println();
+            System.out.println("======================================================");
+            System.out.println("           E2E EXECUTION SUMMARY");
+            System.out.println("======================================================");
+            System.out.println("[Gemini] Status:    " + (testPassed ? "PASSED" : "FAILED"));
             if (result != null) {
-                System.out.println("[Gemini] Result: " + result.getResult());
-                System.out.println("[Gemini] Steps: " + result.getTotalSteps());
-                System.out.println("[Gemini] Tokens: " + result.getTotalTokensUsed());
-                System.out.println("[Gemini] Duration: " + result.getTotalDurationMs() + "ms");
+                System.out.println("[Gemini] Result:    " + result.getResult());
+                System.out.println("[Gemini] Steps:     " + result.getTotalSteps());
+                System.out.println("[Gemini] Tokens:    " + result.getTotalTokensUsed());
+                System.out.println("[Gemini] Duration:  " + result.getTotalDurationMs() + "ms");
             }
             System.out.println("[Gemini] Total Elapsed: " + totalElapsed + "ms");
             if (errorMessage != null) {
-                System.out.println("[Gemini] Error: " + errorMessage);
+                System.out.println("[Gemini] Error:     " + errorMessage);
             }
-            System.out.println("============================================\n");
+
+            // Print step-by-step to console
+            if (result != null && result.getHistory() != null) {
+                System.out.println();
+                System.out.println("--- Step-by-Step Console Summary ---");
+                List<AgentState.AgentStep> history = result.getHistory();
+                for (int i = 0; i < history.size(); i++) {
+                    AgentState.AgentStep step = history.get(i);
+                    String status = step.hasError() ? "FAIL" : "OK";
+                    System.out.printf("[Step %d/%d] %s | action=%s | tokens=%d | duration=%dms%n",
+                            i + 1, history.size(), status, step.getActionName(),
+                            step.getTokensUsed(), step.getDurationMs());
+                    if (step.getLlmThinking() != null && !step.getLlmThinking().isEmpty()) {
+                        System.out.println("  Thinking: " + truncate(step.getLlmThinking(), 200));
+                    }
+                    if (step.getActionResult() != null && !step.getActionResult().isEmpty()) {
+                        System.out.println("  Result:   " + truncate(step.getActionResult(), 200));
+                    }
+                    if (step.hasError()) {
+                        System.out.println("  ERROR:    " + step.getError());
+                    }
+                }
+            }
+
+            System.out.println();
+            System.out.println("--- Artifacts Generated ---");
+            System.out.println("  execution-log.txt:       " + logFile.toAbsolutePath());
+            System.out.println("  execution-summary.json:  " + ARTIFACTS_DIR.resolve("execution-summary.json").toAbsolutePath());
+            System.out.println("  generated-test.spec.ts:  " + ARTIFACTS_DIR.resolve("generated-test.spec.ts").toAbsolutePath());
+            System.out.println("  videos/:                 " + videoDir.toAbsolutePath());
+            System.out.println("======================================================");
+            System.out.println();
 
             // --- 5. Close browser (video is finalized on context close) ---
             browser.close();

@@ -158,7 +158,18 @@ public class OpenAiProvider implements LlmProvider {
         if (tools != null && !tools.isEmpty()) {
             ArrayNode toolsArray = body.putArray("tools");
             for (Map<String, Object> tool : tools) {
-                toolsArray.add(objectMapper.valueToTree(tool));
+                ObjectNode toolNode = objectMapper.valueToTree(tool);
+                // Parameters may be a JSON string (from ActionRegistry) — parse it into an object
+                JsonNode paramsNode = toolNode.path("function").path("parameters");
+                if (paramsNode.isTextual()) {
+                    try {
+                        JsonNode parsedParams = objectMapper.readTree(paramsNode.asText());
+                        ((ObjectNode) toolNode.get("function")).set("parameters", parsedParams);
+                    } catch (IOException e) {
+                        logger.warn("[OPENAI] Failed to parse parameter schema: {}", e.getMessage());
+                    }
+                }
+                toolsArray.add(toolNode);
             }
         }
 

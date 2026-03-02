@@ -224,7 +224,18 @@ public class GeminiProvider implements LlmProvider {
 
                     Object params = function.get("parameters");
                     if (params != null) {
-                        funcNode.set("parameters", objectMapper.valueToTree(params));
+                        // Parameters may be a JSON string (from ActionRegistry) or a Map/Object.
+                        // Gemini API requires parameters as a JSON object, not a string.
+                        if (params instanceof String) {
+                            try {
+                                JsonNode parsedParams = objectMapper.readTree((String) params);
+                                funcNode.set("parameters", parsedParams);
+                            } catch (IOException e) {
+                                logger.warn("[GEMINI] Failed to parse parameter schema: {}", e.getMessage());
+                            }
+                        } else {
+                            funcNode.set("parameters", objectMapper.valueToTree(params));
+                        }
                     }
                 }
             }

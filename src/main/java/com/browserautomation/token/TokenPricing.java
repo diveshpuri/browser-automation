@@ -46,7 +46,7 @@ public class TokenPricing {
             Map.entry("claude-opus-4-20250514", new ModelPricing(15.00, 75.00)),
 
             // Google Gemini
-            Map.entry("gemini-2.0-flash-exp", new ModelPricing(0.10, 0.40)),
+            Map.entry("gemini-3-flash-preview", new ModelPricing(0.10, 0.40)),
             Map.entry("gemini-1.5-pro", new ModelPricing(1.25, 5.00)),
             Map.entry("gemini-1.5-flash", new ModelPricing(0.075, 0.30)),
 

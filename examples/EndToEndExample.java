@@ -47,7 +47,7 @@ public class EndToEndExample {
             // Agent(task=..., llm=ChatGoogle(...), browser=browser)
             AgentResult result = BrowserAutomation.agent()
                     .task("Find the number of stars of the browser-use repo")
-                    .gemini("gemini-2.0-flash-exp")
+                    .gemini("gemini-3-flash-preview")
                     .browserSession(browser)
                     .run();
 

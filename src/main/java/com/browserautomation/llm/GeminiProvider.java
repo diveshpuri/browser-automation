@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  *   <li>{@code GEMINI_API_KEY} - Google Gemini API key</li>
  * </ul>
  *
- * <p>Supported models include gemini-2.0-flash-exp, gemini-1.5-pro, gemini-1.5-flash, etc.</p>
+ * <p>Supported models include gemini-3-flash-preview, gemini-1.5-pro, gemini-1.5-flash, etc.</p>
  */
 public class GeminiProvider implements LlmProvider {
 
@@ -44,7 +44,7 @@ public class GeminiProvider implements LlmProvider {
      * Create a Gemini provider with minimal configuration.
      *
      * @param apiKey the Gemini API key
-     * @param model  the model name (e.g., "gemini-2.0-flash-exp", "gemini-1.5-pro")
+     * @param model  the model name (e.g., "gemini-3-flash-preview", "gemini-1.5-pro")
      */
     public GeminiProvider(String apiKey, String model) {
         this(apiKey, model, 0.0, 4096);
@@ -262,6 +262,6 @@ public class GeminiProvider implements LlmProvider {
     @Override
     public boolean supportsVision() {
         return model.contains("gemini-1.5") || model.contains("gemini-2")
-                || model.contains("gemini-pro-vision");
+                || model.contains("gemini-3") || model.contains("gemini-pro-vision");
     }
 }

@@ -66,7 +66,7 @@ class BrowserUseE2ETest {
         try {
             AgentResult result = BrowserAutomation.agent()
                     .task(TASK)
-                    .gemini("gemini-2.0-flash-exp")
+                    .gemini("gemini-3-flash-preview")
                     .browserSession(browser)
                     .config(new AgentConfig().maxSteps(15).useVision(true))
                     .run();

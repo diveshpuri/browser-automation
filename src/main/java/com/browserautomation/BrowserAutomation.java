@@ -176,7 +176,7 @@ public class BrowserAutomation {
         /**
          * Use Google Gemini as the LLM provider.
          *
-         * @param model  the model name (e.g., "gemini-2.0-flash-exp", "gemini-1.5-pro")
+         * @param model  the model name (e.g., "gemini-3-flash-preview", "gemini-1.5-pro")
          * @param apiKey the Gemini API key
          */
         public AgentBuilder gemini(String model, String apiKey) {

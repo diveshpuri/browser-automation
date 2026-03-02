@@ -1,9 +1,10 @@
 # Browser Automation
 
-A Java library for AI-driven browser automation, inspired by [browser-use](https://github.com/browser-use/browser-use). Makes websites accessible for AI agents using [Playwright for Java](https://playwright.dev/java/) and LLM providers (OpenAI, Anthropic, Azure OpenAI, Gemini, DeepSeek, Ollama, Groq, Mistral, AWS Bedrock).
+A Java library for AI-driven browser automation, inspired by [browser-use](https://github.com/browser-use/browser-use). Makes websites accessible for AI agents using [Playwright for Java](https://playwright.dev/java/) or [Selenium WebDriver](https://www.selenium.dev/) and LLM providers (OpenAI, Anthropic, Azure OpenAI, Gemini, DeepSeek, Ollama, Groq, Mistral, AWS Bedrock).
 
 ## Features
 
+- **Multi-Engine Support** - Switch between Playwright and Selenium at runtime with `.usePlaywright()` / `.useSelenium()`
 - **AI Agent** - Give a task in natural language and let the AI agent control the browser to complete it
 - **DOM Extraction** - Automatically extracts interactive elements from web pages with Shadow DOM support and selector scoring
 - **Vision Support** - Optionally sends screenshots to vision-capable LLMs for better understanding
@@ -49,7 +50,7 @@ The setup script will:
 2. Check and install Maven 3.6+
 3. Install Playwright Chromium browser with system dependencies
 4. Build the project
-5. Run the full test suite (695 tests)
+5. Run the full test suite (735 tests)
 
 See [Setup Scripts](#setup-scripts) for details.
 
@@ -182,22 +183,65 @@ AgentResult result = BrowserAutomation.agent()
     .run();
 ```
 
+### With Selenium Engine
+
+```java
+// Use Selenium instead of Playwright — just add .useSelenium()
+AgentResult result = BrowserAutomation.agent()
+    .task("Search for browser automation on Google")
+    .useSelenium()
+    .gemini("gemini-3-flash-preview")
+    .run();
+```
+
+### Engine Selection via BrowserProfile
+
+```java
+import com.browserautomation.browser.BrowserProfile;
+import com.browserautomation.browser.BrowserEngineType;
+
+// Selenium with custom profile
+BrowserProfile profile = new BrowserProfile()
+    .useSelenium()
+    .headless(true)
+    .viewportSize(1920, 1080);
+
+AgentResult result = BrowserAutomation.agent()
+    .task("Find trending repos on GitHub")
+    .browserProfile(profile)
+    .openAi("gpt-4o")
+    .run();
+
+// Or use the enum directly
+BrowserProfile profile = new BrowserProfile()
+    .engineType(BrowserEngineType.SELENIUM);
+```
+
 ### Manual Browser Control (No LLM)
 
 ```java
 import com.browserautomation.browser.BrowserSession;
 import com.browserautomation.browser.BrowserProfile;
 
+// With Playwright (default)
 try (BrowserSession session = BrowserAutomation.createBrowserSession(
         new BrowserProfile().headless(true))) {
     session.start();
-
     session.navigateTo("https://example.com");
-    System.out.println("Title: " + session.getCurrentPage().title());
-
+    System.out.println("Title: " + session.getPageTitle());
+    System.out.println("URL: " + session.getCurrentUrl());
     String content = session.extractContent();
-    System.out.println("Content: " + content);
+    String screenshot = session.takeScreenshotBase64();
+}
 
+// With Selenium
+try (BrowserSession session = BrowserAutomation.createBrowserSession(
+        new BrowserProfile().useSelenium().headless(true))) {
+    session.start();
+    session.navigateTo("https://example.com");
+    System.out.println("Title: " + session.getPageTitle());
+    System.out.println("URL: " + session.getCurrentUrl());
+    String content = session.extractContent();
     String screenshot = session.takeScreenshotBase64();
 }
 ```
@@ -286,12 +330,17 @@ com.browserautomation
 │   ├── output/                    # StructuredOutputAction<T>
 │   └── url/                       # URL shortening for token savings
 ├── browser/
-│   ├── BrowserSession             # Playwright browser lifecycle (with logging)
-│   ├── BrowserProfile             # Browser configuration
+│   ├── BrowserSession             # Engine-agnostic browser lifecycle (with logging)
+│   ├── BrowserProfile             # Browser configuration (incl. engine selection)
+│   ├── BrowserEngineType          # PLAYWRIGHT / SELENIUM enum
 │   ├── BrowserState               # Current browser state snapshot
 │   ├── SessionManager             # Multi-session management
 │   ├── DemoMode                   # Demo mode visualization
 │   ├── VideoRecorder              # Video recording
+│   ├── engine/                    # Browser engine abstraction
+│   │   ├── BrowserEngine          # Engine interface (21 operations)
+│   │   ├── PlaywrightBrowserEngine # Playwright implementation
+│   │   └── SeleniumBrowserEngine  # Selenium WebDriver implementation
 │   └── watchdog/                  # 11 specialized watchdogs
 │       ├── CaptchaWatchdog        # Captcha detection + auto-wait
 │       ├── DownloadsWatchdog      # Download lifecycle via CDP
@@ -476,7 +525,7 @@ chmod +x scripts/setup.sh
 | 2 | Maven 3.6+ | `brew install maven` | `apt install maven` | `dnf install maven` | `pacman -S maven` |
 | 3 | Playwright | `mvn exec:java ... install chromium` | Same + system deps (libnss3, libatk, etc.) | Same | Same |
 | 4 | Build | `mvn clean compile test-compile` | Same | Same | Same |
-| 5 | Tests | `mvn test` (695 tests) | Same | Same | Same |
+| 5 | Tests | `mvn test` (735 tests) | Same | Same | Same |
 
 Falls back to SDKMAN for Java and manual download for Maven if the package manager version is too old.
 
@@ -497,7 +546,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 | 2 | Maven 3.6+ | `winget install Apache.Maven` | `choco install maven` |
 | 3 | Playwright | `mvn exec:java ... install chromium` | Same |
 | 4 | Build | `mvn clean compile test-compile` | Same |
-| 5 | Tests | `mvn test` (695 tests) | Same |
+| 5 | Tests | `mvn test` (735 tests) | Same |
 
 Falls back to manual Maven download if neither package manager is available.
 
@@ -564,7 +613,7 @@ browser-automation/
 ├── src/
 │   ├── main/java/com/browserautomation/
 │   │   ├── agent/             # AI agent orchestration
-│   │   ├── browser/           # Browser session & watchdogs
+│   │   ├── browser/           # Browser session, engine abstraction & watchdogs
 │   │   ├── dom/               # DOM extraction & processing
 │   │   ├── action/            # Action registry & implementations
 │   │   ├── llm/               # 10 LLM provider implementations
@@ -576,7 +625,7 @@ browser-automation/
 │   │   └── logback.xml        # Logging configuration
 │   └── test/java/com/browserautomation/
 │       ├── e2e/               # End-to-end tests
-│       └── ...                # 695 unit tests
+│       └── ...                # 735 unit tests
 ├── examples/
 │   ├── BasicExample.java      # Simple usage example
 │   └── EndToEndExample.java   # Full E2E example with all providers

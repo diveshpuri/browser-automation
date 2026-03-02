@@ -41,7 +41,7 @@ public class NavigateAction implements BrowserAction {
             long start = System.currentTimeMillis();
             session.navigateTo(url);
             long elapsed = System.currentTimeMillis() - start;
-            String finalUrl = session.getCurrentPage().url();
+            String finalUrl = session.getCurrentUrl();
             logger.info("[ACTION:navigate] Navigation completed in {}ms — final URL: {}", elapsed, finalUrl);
             return ActionResult.success("Navigated to " + url);
         } catch (Exception e) {

@@ -1,11 +1,12 @@
 package com.browserautomation.browser;
 
+import com.browserautomation.browser.engine.BrowserEngine;
+import com.browserautomation.browser.engine.PlaywrightBrowserEngine;
+import com.browserautomation.browser.engine.SeleniumBrowserEngine;
 import com.browserautomation.dom.DomElement;
-import com.browserautomation.dom.DomService;
 import com.browserautomation.dom.DomState;
-import com.microsoft.playwright.*;
-import com.microsoft.playwright.options.LoadState;
-import com.microsoft.playwright.options.ViewportSize;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Page;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,26 +14,32 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Manages the Playwright browser lifecycle, pages, and tabs.
- * Equivalent to browser-use's BrowserSession.
+ * Manages the browser lifecycle, pages, and tabs.
+ * Delegates to either a Playwright or Selenium engine based on the BrowserProfile configuration.
+ *
+ * <p>Equivalent to browser-use's BrowserSession. All browser actions interact through
+ * this class, which internally delegates to the configured {@link BrowserEngine}.</p>
+ *
+ * <h2>Engine Selection</h2>
+ * <pre>{@code
+ * // Playwright (default)
+ * BrowserSession session = new BrowserSession(new BrowserProfile().headless(true));
+ *
+ * // Selenium
+ * BrowserSession session = new BrowserSession(new BrowserProfile().useSelenium().headless(true));
+ * }</pre>
  */
 public class BrowserSession implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(BrowserSession.class);
 
     private final BrowserProfile profile;
-    private Playwright playwright;
-    private Browser browser;
-    private BrowserContext context;
-    private Page currentPage;
-    private final DomService domService;
+    private BrowserEngine engine;
 
     public BrowserSession(BrowserProfile profile) {
         this.profile = profile;
-        this.domService = new DomService();
     }
 
     public BrowserSession() {
@@ -40,10 +47,20 @@ public class BrowserSession implements AutoCloseable {
     }
 
     /**
-     * Start the browser session by launching Playwright and the browser.
+     * Create the appropriate engine based on the profile's engine type.
+     */
+    private BrowserEngine createEngine() {
+        return switch (profile.getEngineType()) {
+            case SELENIUM -> new SeleniumBrowserEngine();
+            case PLAYWRIGHT -> new PlaywrightBrowserEngine();
+        };
+    }
+
+    /**
+     * Start the browser session by launching the configured engine.
      */
     public void start() {
-        logger.info("[SESSION] Starting browser session");
+        logger.info("[SESSION] Starting browser session (engine={})", profile.getEngineType());
         logger.info("[SESSION]   headless={}, viewport={}x{}, acceptDownloads={}",
                 profile.isHeadless(), profile.getViewportWidth(), profile.getViewportHeight(),
                 profile.isAcceptDownloads());
@@ -61,49 +78,11 @@ public class BrowserSession implements AutoCloseable {
         }
 
         long startTime = System.currentTimeMillis();
-        this.playwright = Playwright.create();
-        logger.info("[SESSION] Playwright instance created in {}ms", System.currentTimeMillis() - startTime);
-
-        BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
-                .setHeadless(profile.isHeadless());
-
-        if (!profile.getArgs().isEmpty()) {
-            launchOptions.setArgs(profile.getArgs());
-        }
-        if (profile.getChannel() != null) {
-            launchOptions.setChannel(profile.getChannel());
-        }
-
-        long browserLaunchStart = System.currentTimeMillis();
-        this.browser = playwright.chromium().launch(launchOptions);
-        logger.info("[SESSION] Chromium browser launched in {}ms", System.currentTimeMillis() - browserLaunchStart);
-
-        Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
-                .setViewportSize(profile.getViewportWidth(), profile.getViewportHeight())
-                .setAcceptDownloads(profile.isAcceptDownloads());
-
-        if (profile.getUserAgent() != null) {
-            contextOptions.setUserAgent(profile.getUserAgent());
-        }
-
-        if (profile.getProxy() != null) {
-            BrowserProfile.ProxySettings ps = profile.getProxy();
-            contextOptions.setProxy(new com.microsoft.playwright.options.Proxy(ps.getServer())
-                    .setUsername(ps.getUsername())
-                    .setPassword(ps.getPassword()));
-        }
-
-        this.context = browser.newContext(contextOptions);
-        logger.info("[SESSION] Browser context created");
-
-        if (!profile.getExtraHeaders().isEmpty()) {
-            context.setExtraHTTPHeaders(profile.getExtraHeaders());
-            logger.info("[SESSION] Extra headers set: {}", profile.getExtraHeaders().keySet());
-        }
-
-        this.currentPage = context.newPage();
+        this.engine = createEngine();
+        engine.start(profile);
         long totalTime = System.currentTimeMillis() - startTime;
-        logger.info("[SESSION] Browser session started successfully in {}ms (page ready)", totalTime);
+        logger.info("[SESSION] Browser session started with {} engine in {}ms",
+                engine.getEngineTypeName(), totalTime);
     }
 
     /**
@@ -113,56 +92,16 @@ public class BrowserSession implements AutoCloseable {
      * @param videoDir the directory to save recorded videos
      */
     public void startWithVideoRecording(Path videoDir) {
-        logger.info("[SESSION] Starting browser session with VIDEO RECORDING");
+        logger.info("[SESSION] Starting browser session with VIDEO RECORDING (engine={})", profile.getEngineType());
         logger.info("[SESSION]   headless={}, viewport={}x{}, videoDir={}",
                 profile.isHeadless(), profile.getViewportWidth(), profile.getViewportHeight(), videoDir);
 
         long startTime = System.currentTimeMillis();
-        this.playwright = Playwright.create();
-        logger.info("[SESSION] Playwright instance created in {}ms", System.currentTimeMillis() - startTime);
-
-        BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
-                .setHeadless(profile.isHeadless());
-
-        if (!profile.getArgs().isEmpty()) {
-            launchOptions.setArgs(profile.getArgs());
-        }
-        if (profile.getChannel() != null) {
-            launchOptions.setChannel(profile.getChannel());
-        }
-
-        long browserLaunchStart = System.currentTimeMillis();
-        this.browser = playwright.chromium().launch(launchOptions);
-        logger.info("[SESSION] Chromium browser launched in {}ms", System.currentTimeMillis() - browserLaunchStart);
-
-        Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
-                .setViewportSize(profile.getViewportWidth(), profile.getViewportHeight())
-                .setAcceptDownloads(profile.isAcceptDownloads())
-                .setRecordVideoDir(videoDir)
-                .setRecordVideoSize(profile.getViewportWidth(), profile.getViewportHeight());
-
-        if (profile.getUserAgent() != null) {
-            contextOptions.setUserAgent(profile.getUserAgent());
-        }
-
-        if (profile.getProxy() != null) {
-            BrowserProfile.ProxySettings ps = profile.getProxy();
-            contextOptions.setProxy(new com.microsoft.playwright.options.Proxy(ps.getServer())
-                    .setUsername(ps.getUsername())
-                    .setPassword(ps.getPassword()));
-        }
-
-        this.context = browser.newContext(contextOptions);
-        logger.info("[SESSION] Browser context created with video recording enabled ({}x{})",
-                profile.getViewportWidth(), profile.getViewportHeight());
-
-        if (!profile.getExtraHeaders().isEmpty()) {
-            context.setExtraHTTPHeaders(profile.getExtraHeaders());
-        }
-
-        this.currentPage = context.newPage();
+        this.engine = createEngine();
+        engine.startWithVideoRecording(profile, videoDir);
         long totalTime = System.currentTimeMillis() - startTime;
-        logger.info("[SESSION] Browser session started with video recording in {}ms", totalTime);
+        logger.info("[SESSION] Browser session started with {} engine and video recording in {}ms",
+                engine.getEngineTypeName(), totalTime);
     }
 
     /**
@@ -172,22 +111,17 @@ public class BrowserSession implements AutoCloseable {
         logger.info("[NAV] Navigating to: {}", url);
         ensureStarted();
         long start = System.currentTimeMillis();
-        currentPage.navigate(url);
+        engine.navigateTo(url);
         waitForPageLoad();
         logger.info("[NAV] Navigation completed in {}ms — final URL: {}",
-                System.currentTimeMillis() - start, currentPage.url());
+                System.currentTimeMillis() - start, engine.getCurrentUrl());
     }
 
     /**
      * Wait for the page to reach a stable state.
      */
     public void waitForPageLoad() {
-        try {
-            currentPage.waitForLoadState(LoadState.DOMCONTENTLOADED);
-            Thread.sleep(profile.getMinimumPageLoadWaitMs());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        engine.waitForPageLoad(profile.getMinimumPageLoadWaitMs());
     }
 
     /**
@@ -198,33 +132,29 @@ public class BrowserSession implements AutoCloseable {
         long start = System.currentTimeMillis();
         logger.debug("[STATE] Extracting browser state (includeScreenshot={})", includeScreenshot);
 
-        String url = currentPage.url();
-        String title = currentPage.title();
+        String url = engine.getCurrentUrl();
+        String title = engine.getPageTitle();
         logger.debug("[STATE] Current page — URL: {}, Title: '{}'", url, title);
 
         // Collect tab info
         List<BrowserState.TabInfo> tabs = new ArrayList<>();
-        List<Page> pages = context.pages();
-        int activeIndex = 0;
-        for (int i = 0; i < pages.size(); i++) {
-            Page p = pages.get(i);
-            tabs.add(new BrowserState.TabInfo(i, p.url(), p.title()));
-            if (p == currentPage) {
-                activeIndex = i;
-            }
+        List<BrowserEngine.TabInfo> engineTabs = engine.getTabsInfo();
+        for (BrowserEngine.TabInfo t : engineTabs) {
+            tabs.add(new BrowserState.TabInfo(t.index(), t.url(), t.title()));
         }
+        int activeIndex = engine.getActiveTabIndex();
 
         // Extract DOM state
-        DomState domState = domService.extractState(currentPage);
+        DomState domState = engine.extractDomState();
 
         // Take screenshot
         byte[] screenshot = null;
         if (includeScreenshot) {
-            screenshot = currentPage.screenshot(new Page.ScreenshotOptions().setFullPage(false));
+            screenshot = engine.takeScreenshot();
         }
 
         // Get page info
-        BrowserState.PageInfo pageInfo = getPageInfo();
+        BrowserState.PageInfo pageInfo = engine.getPageInfo();
 
         long elapsed = System.currentTimeMillis() - start;
         logger.debug("[STATE] Browser state extracted in {}ms — {} tabs, {} elements, screenshot={}",
@@ -235,33 +165,11 @@ public class BrowserSession implements AutoCloseable {
     }
 
     /**
-     * Get page scroll and dimension information.
-     */
-    private BrowserState.PageInfo getPageInfo() {
-        try {
-            Object result = currentPage.evaluate(
-                    "() => ({ scrollY: window.scrollY, pageHeight: document.documentElement.scrollHeight, viewportHeight: window.innerHeight })"
-            );
-            if (result instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> map = (Map<String, Object>) result;
-                double scrollY = ((Number) map.get("scrollY")).doubleValue();
-                double pageHeight = ((Number) map.get("pageHeight")).doubleValue();
-                double viewportHeight = ((Number) map.get("viewportHeight")).doubleValue();
-                return new BrowserState.PageInfo(scrollY, pageHeight, viewportHeight);
-            }
-        } catch (Exception e) {
-            logger.warn("Failed to get page info: {}", e.getMessage());
-        }
-        return new BrowserState.PageInfo(0, 0, profile.getViewportHeight());
-    }
-
-    /**
      * Click on a DOM element by its index.
      */
     public void clickElement(int elementIndex) {
         ensureStarted();
-        DomState state = domService.extractState(currentPage);
+        DomState state = engine.extractDomState();
         DomElement element = state.getElementByIndex(elementIndex);
         if (element == null) {
             logger.warn("[CLICK] Element with index {} not found in {} available elements",
@@ -272,16 +180,8 @@ public class BrowserSession implements AutoCloseable {
                 elementIndex, element.getDescription(), element.getTagName(), element.buildSelector());
 
         String selector = element.buildSelector();
-        try {
-            currentPage.locator(selector).first().click(new Locator.ClickOptions().setTimeout(5000));
-            logger.info("[CLICK] Direct click succeeded on element [{}]", elementIndex);
-        } catch (Exception e) {
-            // Fallback: try JavaScript click
-            logger.warn("[CLICK] Direct click failed on element [{}]: {} — falling back to JS click",
-                    elementIndex, e.getMessage());
-            currentPage.evaluate("(selector) => { document.querySelector(selector)?.click(); }", selector);
-            logger.info("[CLICK] JS click fallback executed for element [{}]", elementIndex);
-        }
+        engine.clickElement(selector, element);
+        logger.info("[CLICK] Click completed on element [{}]", elementIndex);
         waitAfterAction();
     }
 
@@ -290,7 +190,7 @@ public class BrowserSession implements AutoCloseable {
      */
     public void typeText(int elementIndex, String text) {
         ensureStarted();
-        DomState state = domService.extractState(currentPage);
+        DomState state = engine.extractDomState();
         DomElement element = state.getElementByIndex(elementIndex);
         if (element == null) {
             logger.warn("[TYPE] Element with index {} not found in {} available elements",
@@ -301,9 +201,7 @@ public class BrowserSession implements AutoCloseable {
                 elementIndex, text, element.getTagName(), element.buildSelector());
 
         String selector = element.buildSelector();
-        Locator locator = currentPage.locator(selector).first();
-        locator.click();
-        locator.fill(text);
+        engine.typeText(selector, text);
         logger.info("[TYPE] Text input completed for element [{}]", elementIndex);
         waitAfterAction();
     }
@@ -313,8 +211,7 @@ public class BrowserSession implements AutoCloseable {
      */
     public void scroll(boolean down, int pixels) {
         ensureStarted();
-        int scrollAmount = down ? pixels : -pixels;
-        currentPage.evaluate("(amount) => window.scrollBy(0, amount)", scrollAmount);
+        engine.scroll(down, pixels);
         waitAfterAction();
     }
 
@@ -323,7 +220,7 @@ public class BrowserSession implements AutoCloseable {
      */
     public void goBack() {
         ensureStarted();
-        currentPage.goBack();
+        engine.goBack();
         waitForPageLoad();
     }
 
@@ -332,14 +229,8 @@ public class BrowserSession implements AutoCloseable {
      */
     public void switchTab(int tabIndex) {
         ensureStarted();
-        List<Page> pages = context.pages();
-        if (tabIndex >= 0 && tabIndex < pages.size()) {
-            currentPage = pages.get(tabIndex);
-            currentPage.bringToFront();
-            logger.info("Switched to tab {}: {}", tabIndex, currentPage.url());
-        } else {
-            throw new RuntimeException("Invalid tab index: " + tabIndex);
-        }
+        engine.switchTab(tabIndex);
+        logger.info("Switched to tab {}: {}", tabIndex, engine.getCurrentUrl());
     }
 
     /**
@@ -347,17 +238,8 @@ public class BrowserSession implements AutoCloseable {
      */
     public void closeTab(int tabIndex) {
         ensureStarted();
-        List<Page> pages = context.pages();
-        if (tabIndex >= 0 && tabIndex < pages.size()) {
-            Page pageToClose = pages.get(tabIndex);
-            if (pageToClose == currentPage && pages.size() > 1) {
-                // Switch to another tab first
-                int newIndex = tabIndex > 0 ? tabIndex - 1 : 1;
-                currentPage = pages.get(newIndex);
-            }
-            pageToClose.close();
-            logger.info("Closed tab {}", tabIndex);
-        }
+        engine.closeTab(tabIndex);
+        logger.info("Closed tab {}", tabIndex);
     }
 
     /**
@@ -365,9 +247,8 @@ public class BrowserSession implements AutoCloseable {
      */
     public void openNewTab(String url) {
         ensureStarted();
-        currentPage = context.newPage();
+        engine.openNewTab(url);
         if (url != null && !url.isEmpty()) {
-            currentPage.navigate(url);
             waitForPageLoad();
         }
         logger.info("Opened new tab: {}", url);
@@ -378,7 +259,7 @@ public class BrowserSession implements AutoCloseable {
      */
     public void sendKeys(String keys) {
         ensureStarted();
-        currentPage.keyboard().press(keys);
+        engine.sendKeys(keys);
         waitAfterAction();
     }
 
@@ -387,7 +268,7 @@ public class BrowserSession implements AutoCloseable {
      */
     public String extractContent() {
         ensureStarted();
-        return currentPage.innerText("body");
+        return engine.extractContent();
     }
 
     /**
@@ -395,7 +276,7 @@ public class BrowserSession implements AutoCloseable {
      */
     public String takeScreenshotBase64() {
         ensureStarted();
-        byte[] bytes = currentPage.screenshot(new Page.ScreenshotOptions().setFullPage(false));
+        byte[] bytes = engine.takeScreenshot();
         return Base64.getEncoder().encodeToString(bytes);
     }
 
@@ -404,13 +285,13 @@ public class BrowserSession implements AutoCloseable {
      */
     public void uploadFile(int elementIndex, Path filePath) {
         ensureStarted();
-        DomState state = domService.extractState(currentPage);
+        DomState state = engine.extractDomState();
         DomElement element = state.getElementByIndex(elementIndex);
         if (element == null) {
             throw new RuntimeException("Element with index " + elementIndex + " not found");
         }
         String selector = element.buildSelector();
-        currentPage.locator(selector).first().setInputFiles(filePath);
+        engine.uploadFile(selector, filePath);
         waitAfterAction();
     }
 
@@ -419,19 +300,13 @@ public class BrowserSession implements AutoCloseable {
      */
     public void selectDropdownOption(int elementIndex, String value) {
         ensureStarted();
-        DomState state = domService.extractState(currentPage);
+        DomState state = engine.extractDomState();
         DomElement element = state.getElementByIndex(elementIndex);
         if (element == null) {
             throw new RuntimeException("Element with index " + elementIndex + " not found");
         }
         String selector = element.buildSelector();
-        try {
-            currentPage.locator(selector).first().selectOption(value);
-        } catch (Exception e) {
-            // Try selecting by label
-            currentPage.locator(selector).first().selectOption(
-                    new com.microsoft.playwright.options.SelectOption().setLabel(value));
-        }
+        engine.selectDropdownOption(selector, value);
         waitAfterAction();
     }
 
@@ -440,17 +315,13 @@ public class BrowserSession implements AutoCloseable {
      */
     public List<String> getDropdownOptions(int elementIndex) {
         ensureStarted();
-        DomState state = domService.extractState(currentPage);
+        DomState state = engine.extractDomState();
         DomElement element = state.getElementByIndex(elementIndex);
         if (element == null) {
             throw new RuntimeException("Element with index " + elementIndex + " not found");
         }
         String selector = element.buildSelector();
-        @SuppressWarnings("unchecked")
-        List<String> options = (List<String>) currentPage.evaluate(
-                "(sel) => Array.from(document.querySelector(sel)?.options || []).map(o => o.text + ' (' + o.value + ')')",
-                selector);
-        return options != null ? options : new ArrayList<>();
+        return engine.getDropdownOptions(selector);
     }
 
     /**
@@ -458,14 +329,14 @@ public class BrowserSession implements AutoCloseable {
      */
     public void hoverElement(int elementIndex) {
         ensureStarted();
-        DomState state = domService.extractState(currentPage);
+        DomState state = engine.extractDomState();
         DomElement element = state.getElementByIndex(elementIndex);
         if (element == null) {
             throw new RuntimeException("Element with index " + elementIndex + " not found");
         }
         logger.info("Hovering over element [{}]: {}", elementIndex, element.getDescription());
         String selector = element.buildSelector();
-        currentPage.locator(selector).first().hover();
+        engine.hoverElement(selector);
         waitAfterAction();
     }
 
@@ -474,7 +345,7 @@ public class BrowserSession implements AutoCloseable {
      */
     public void dragAndDrop(int sourceIndex, int targetIndex) {
         ensureStarted();
-        DomState state = domService.extractState(currentPage);
+        DomState state = engine.extractDomState();
         DomElement sourceElement = state.getElementByIndex(sourceIndex);
         DomElement targetElement = state.getElementByIndex(targetIndex);
         if (sourceElement == null) {
@@ -486,7 +357,7 @@ public class BrowserSession implements AutoCloseable {
         logger.info("Dragging element [{}] to element [{}]", sourceIndex, targetIndex);
         String sourceSelector = sourceElement.buildSelector();
         String targetSelector = targetElement.buildSelector();
-        currentPage.locator(sourceSelector).first().dragTo(currentPage.locator(targetSelector).first());
+        engine.dragAndDrop(sourceSelector, targetSelector);
         waitAfterAction();
     }
 
@@ -495,7 +366,7 @@ public class BrowserSession implements AutoCloseable {
      */
     public void mouseMove(double x, double y) {
         ensureStarted();
-        currentPage.mouse().move(x, y);
+        engine.mouseMove(x, y);
         waitAfterAction();
     }
 
@@ -504,21 +375,66 @@ public class BrowserSession implements AutoCloseable {
      */
     public Object executeJavaScript(String script) {
         ensureStarted();
-        return currentPage.evaluate(script);
+        return engine.executeJavaScript(script);
+    }
+
+    /**
+     * Get the current URL of the active page.
+     * Engine-agnostic alternative to getCurrentPage().url().
+     */
+    public String getCurrentUrl() {
+        ensureStarted();
+        return engine.getCurrentUrl();
+    }
+
+    /**
+     * Get the title of the current page.
+     * Engine-agnostic alternative to getCurrentPage().title().
+     */
+    public String getPageTitle() {
+        ensureStarted();
+        return engine.getPageTitle();
     }
 
     /**
      * Get the underlying Playwright Page object.
+     * Only available when using the Playwright engine.
+     *
+     * @return the Playwright Page, or null if not using Playwright
      */
     public Page getCurrentPage() {
-        return currentPage;
+        if (engine instanceof PlaywrightBrowserEngine playwrightEngine) {
+            return playwrightEngine.getPlaywrightPage();
+        }
+        return null;
     }
 
     /**
      * Get the underlying Playwright BrowserContext.
+     * Only available when using the Playwright engine.
+     *
+     * @return the Playwright BrowserContext, or null if not using Playwright
      */
     public BrowserContext getContext() {
-        return context;
+        if (engine instanceof PlaywrightBrowserEngine playwrightEngine) {
+            return playwrightEngine.getPlaywrightContext();
+        }
+        return null;
+    }
+
+    /**
+     * Get the underlying BrowserEngine instance.
+     * Use this to access engine-specific features.
+     */
+    public BrowserEngine getEngine() {
+        return engine;
+    }
+
+    /**
+     * Get the engine type in use.
+     */
+    public BrowserEngineType getEngineType() {
+        return profile.getEngineType();
     }
 
     public BrowserProfile getProfile() {
@@ -529,7 +445,7 @@ public class BrowserSession implements AutoCloseable {
      * Check if the browser session is started.
      */
     public boolean isStarted() {
-        return browser != null && currentPage != null;
+        return engine != null && engine.isStarted();
     }
 
     private void waitAfterAction() {
@@ -541,28 +457,19 @@ public class BrowserSession implements AutoCloseable {
     }
 
     private void ensureStarted() {
-        if (browser == null || currentPage == null) {
+        if (engine == null || !engine.isStarted()) {
             throw new IllegalStateException("Browser session not started. Call start() first.");
         }
     }
 
     @Override
     public void close() {
-        logger.info("[SESSION] Closing browser session");
+        logger.info("[SESSION] Closing browser session (engine={})",
+                engine != null ? engine.getEngineTypeName() : "none");
         long start = System.currentTimeMillis();
         try {
-            if (context != null) {
-                logger.info("[SESSION] Closing browser context (videos will be finalized)");
-                context.close();
-                logger.info("[SESSION] Browser context closed");
-            }
-            if (browser != null) {
-                browser.close();
-                logger.info("[SESSION] Browser closed");
-            }
-            if (playwright != null) {
-                playwright.close();
-                logger.info("[SESSION] Playwright closed");
+            if (engine != null) {
+                engine.close();
             }
             logger.info("[SESSION] Browser session closed in {}ms", System.currentTimeMillis() - start);
         } catch (Exception e) {

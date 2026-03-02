@@ -10,7 +10,6 @@ import java.util.*;
  * Maintains a fingerprint of previously seen nodes and marks new ones
  * in subsequent snapshots.
  *
- * Equivalent to browser-use's new node marking feature.
  */
 public class NewNodeTracker {
 

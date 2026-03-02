@@ -8,7 +8,6 @@ import java.util.Map;
 
 /**
  * Configuration profile for the browser instance.
- * Equivalent to browser-use's BrowserProfile.
  */
 public class BrowserProfile {
 

@@ -11,7 +11,6 @@ import java.util.*;
  * Service for extracting DOM state from a Playwright page.
  * Identifies interactive elements, assigns indices, and builds a
  * serialized representation suitable for LLM consumption.
- * Equivalent to browser-use's DomService.
  */
 public class DomService {
 

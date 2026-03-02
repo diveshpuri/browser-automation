@@ -16,7 +16,6 @@ import java.util.function.Function;
  * Executes multiple actions per agent step (up to max_actions_per_step).
  * Allows the LLM to specify multiple actions in a single response for efficiency.
  *
- * Equivalent to browser-use's multi-act capability (max_actions_per_step=5).
  */
 public class MultiActExecutor {
 

@@ -8,7 +8,6 @@ import java.util.Map;
 /**
  * Represents the serialized DOM state of a page, containing all interactive
  * elements indexed for LLM consumption.
- * Equivalent to browser-use's SerializedDOMState.
  */
 public class DomState {
 

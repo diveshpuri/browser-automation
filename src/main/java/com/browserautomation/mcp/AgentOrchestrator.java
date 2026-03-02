@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Multi-Agent Control Plane (MCP) for coordinating multiple agents.
- * Equivalent to browser-use's mcp module.
  *
  * Manages agent registration, task routing, inter-agent communication,
  * and workflow coordination across multiple browser automation agents.

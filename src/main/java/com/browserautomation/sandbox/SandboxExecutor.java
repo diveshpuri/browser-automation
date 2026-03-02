@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Sandboxed code execution environment.
- * Equivalent to browser-use's sandbox module.
  *
  * Provides isolated execution of code snippets with resource limits,
  * restricted file system access, and timeout enforcement.

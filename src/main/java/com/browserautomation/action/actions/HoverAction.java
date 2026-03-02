@@ -7,7 +7,6 @@ import com.browserautomation.browser.BrowserSession;
 
 /**
  * Hover over a DOM element by its index.
- * Equivalent to browser-use's mouse.py hover functionality.
  */
 public class HoverAction implements BrowserAction {
 

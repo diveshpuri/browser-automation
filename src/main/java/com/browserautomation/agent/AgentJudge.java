@@ -11,7 +11,6 @@ import java.util.List;
 
 /**
  * Evaluates agent performance and task completion quality.
- * Equivalent to browser-use's agent/judge.py.
  *
  * Uses an LLM to assess whether the agent successfully completed
  * the given task based on the execution history and final state.

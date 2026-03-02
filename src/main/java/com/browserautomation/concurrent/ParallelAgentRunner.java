@@ -13,7 +13,6 @@ import java.util.concurrent.*;
 
 /**
  * Runs multiple browser automation agents concurrently.
- * Equivalent to browser-use's concurrent execution capabilities.
  *
  * <p>Supports running multiple tasks in parallel, each with its own
  * browser session, and collecting results when all complete.</p>

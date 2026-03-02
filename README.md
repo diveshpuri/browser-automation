@@ -1,6 +1,6 @@
 # Browser Automation
 
-A Java library for AI-driven browser automation, inspired by [browser-use](https://github.com/browser-use/browser-use). Makes websites accessible for AI agents using [Playwright for Java](https://playwright.dev/java/) or [Selenium WebDriver](https://www.selenium.dev/) and LLM providers (OpenAI, Anthropic, Azure OpenAI, Gemini, DeepSeek, Ollama, Groq, Mistral, AWS Bedrock).
+A Java library for AI-driven browser automation. Makes websites accessible for AI agents using [Playwright for Java](https://playwright.dev/java/) or [Selenium WebDriver](https://www.selenium.dev/) and LLM providers (OpenAI, Anthropic, Azure OpenAI, Gemini, DeepSeek, Ollama, Groq, Mistral, AWS Bedrock).
 
 ## Features
 
@@ -482,7 +482,7 @@ The E2E test (`BrowserUseE2ETest`) automatically captures all SLF4J logs into `e
 ```
 === E2E Test Execution Log ===
 Timestamp: 2026-03-01 12:00:00
-Task: Find the number of stars of the browser-use repo on github
+Task: Find the current price of Bitcoin on google
 Provider: Google Gemini (gemini-3-flash-preview)
 ==============================
 
@@ -501,7 +501,7 @@ Provider: Google Gemini (gemini-3-flash-preview)
 
 --- Execution Summary ---
 Status: SUCCESS
-Result: The browser-use repo has 65.2k stars
+Result: The current price of Bitcoin is $XX,XXX
 Total Steps: 3
 Total Tokens Used: 4521
 ```

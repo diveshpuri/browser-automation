@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 
 /**
  * Generates the system prompt for the agent based on configuration and available actions.
- * Equivalent to browser-use's SystemPrompt.
  */
 public class SystemPrompt {
 

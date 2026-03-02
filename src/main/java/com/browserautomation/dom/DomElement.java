@@ -7,7 +7,6 @@ import java.util.Map;
 /**
  * Represents a single DOM element with its properties and attributes.
  * Elements are indexed for LLM reference (e.g., [1], [2], etc.).
- * Equivalent to browser-use's EnhancedDOMTreeNode.
  */
 public class DomElement {
 

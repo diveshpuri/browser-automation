@@ -20,7 +20,6 @@ import java.util.Map;
  * Takes a task description, uses the LLM to decide actions, and executes them
  * against the browser via Playwright.
  *
- * Equivalent to browser-use's Agent class.
  *
  * Usage:
  * <pre>

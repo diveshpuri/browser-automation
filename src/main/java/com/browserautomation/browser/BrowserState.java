@@ -7,7 +7,6 @@ import java.util.List;
 /**
  * Captures the current state of the browser, including the current page URL,
  * title, tab information, screenshot, and DOM state.
- * Equivalent to browser-use's BrowserStateSummary.
  */
 public class BrowserState {
 

@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Records browser automation sessions as animated GIF files.
- * Equivalent to browser-use's agent/gif.py.
  *
  * Captures screenshots at regular intervals and assembles them
  * into an animated GIF when recording is stopped.

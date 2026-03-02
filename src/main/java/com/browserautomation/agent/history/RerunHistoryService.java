@@ -18,7 +18,6 @@ import java.util.Map;
  * Service for saving and replaying agent execution history traces.
  * Serializes agent history to JSON and supports replaying against a browser session.
  *
- * Equivalent to browser-use's rerun history capability.
  */
 public class RerunHistoryService {
 

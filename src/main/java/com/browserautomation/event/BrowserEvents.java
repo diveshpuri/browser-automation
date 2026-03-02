@@ -6,7 +6,6 @@ import java.util.Map;
  * Typed browser event classes for the event-driven architecture.
  * Each event type corresponds to a specific browser action or lifecycle event.
  *
- * Equivalent to browser-use's typed events (ClickElementEvent, NavigateToUrlEvent, etc.)
  */
 public final class BrowserEvents {
 

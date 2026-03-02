@@ -16,7 +16,6 @@ import java.util.function.Consumer;
 
 /**
  * Browser watchdog for monitoring and handling browser issues.
- * Equivalent to browser-use's watchdogs module.
  *
  * <p>Monitors for:</p>
  * <ul>

@@ -5,7 +5,6 @@ import java.util.Map;
 
 /**
  * Represents a reusable automation skill.
- * Equivalent to browser-use's skills module.
  *
  * <p>A skill is a named, reusable sequence of actions or instructions
  * that can be registered and invoked by the agent to perform common tasks.</p>

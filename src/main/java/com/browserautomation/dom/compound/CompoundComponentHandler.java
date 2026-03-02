@@ -10,7 +10,6 @@ import java.util.*;
  * Supports &lt;select&gt;, &lt;input type="date/time"&gt;, &lt;details&gt;/&lt;summary&gt;, and
  * other compound elements that cannot be interacted with via simple click/type.
  *
- * Equivalent to browser-use's compound component support.
  */
 public class CompoundComponentHandler {
 

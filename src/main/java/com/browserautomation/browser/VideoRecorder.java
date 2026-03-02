@@ -12,7 +12,6 @@ import java.util.List;
 
 /**
  * Records browser automation sessions as video files.
- * Equivalent to browser-use's browser/video_recorder.py.
  *
  * Uses Playwright's built-in video recording capability to capture
  * the browser session as a WebM video file.

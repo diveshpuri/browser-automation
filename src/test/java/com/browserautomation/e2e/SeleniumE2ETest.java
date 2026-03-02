@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("e2e")
 class SeleniumE2ETest {
 
-    private static final String TASK = "Find the number of stars of the browser-use repo on github";
+    private static final String TASK = "Find the current price of Bitcoin on google";
 
     /** Artifact output directory for Selenium E2E — separate from Playwright artifacts. */
     private static final Path ARTIFACTS_DIR = Path.of(

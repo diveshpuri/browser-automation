@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
  * Maintains state across executions, allowing incremental code building
  * and variable persistence between cells.
  *
- * Equivalent to browser-use's code_use service (1438 lines).
  *
  * Features:
  * - Persistent Python/Node.js namespace across executions

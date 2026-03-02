@@ -19,7 +19,6 @@ import java.util.List;
  * Manages the browser lifecycle, pages, and tabs.
  * Delegates to either a Playwright or Selenium engine based on the BrowserProfile configuration.
  *
- * <p>Equivalent to browser-use's BrowserSession. All browser actions interact through
  * this class, which internally delegates to the configured {@link BrowserEngine}.</p>
  *
  * <h2>Engine Selection</h2>

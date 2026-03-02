@@ -17,7 +17,6 @@ import java.util.*;
 
 /**
  * Registry for managing automation skills.
- * Equivalent to browser-use's skills module.
  *
  * <p>Supports registering skills programmatically or loading from JSON files.
  * Skills can be executed directly or referenced in LLM conversations.</p>

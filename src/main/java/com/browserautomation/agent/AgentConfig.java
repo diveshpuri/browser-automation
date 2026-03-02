@@ -2,7 +2,6 @@ package com.browserautomation.agent;
 
 /**
  * Configuration for the browser automation agent.
- * Equivalent to browser-use's AgentSettings.
  */
 public class AgentConfig {
 

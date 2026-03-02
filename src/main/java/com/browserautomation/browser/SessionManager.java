@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Manages multiple browser sessions for concurrent automation tasks.
- * Equivalent to browser-use's session_manager.py.
  *
  * <p>Supports creating, retrieving, and cleaning up named browser sessions.
  * Thread-safe for use in multi-threaded environments.</p>

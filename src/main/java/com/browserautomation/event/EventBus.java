@@ -13,7 +13,6 @@ import java.util.function.Consumer;
  * Supports synchronous and asynchronous event dispatch, event history,
  * and typed event subscriptions.
  *
- * Equivalent to browser-use's bubus EventBus.
  */
 public class EventBus {
 

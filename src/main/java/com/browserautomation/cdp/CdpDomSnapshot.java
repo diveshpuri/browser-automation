@@ -13,7 +13,6 @@ import java.util.*;
  * Provides visibility, paint order, bounding boxes, and device pixel ratio info
  * that isn't available through Playwright's high-level API.
  *
- * Equivalent to browser-use's dom/enhanced_snapshot.py.
  */
 public class CdpDomSnapshot {
 

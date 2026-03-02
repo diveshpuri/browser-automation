@@ -84,6 +84,56 @@ public class BrowserSession implements AutoCloseable {
     }
 
     /**
+     * Start the browser session with video recording enabled.
+     * Videos are saved to the specified directory when the context is closed.
+     *
+     * @param videoDir the directory to save recorded videos
+     */
+    public void startWithVideoRecording(Path videoDir) {
+        logger.info("Starting browser session with video recording (headless={}, videoDir={})",
+                profile.isHeadless(), videoDir);
+        this.playwright = Playwright.create();
+
+        BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
+                .setHeadless(profile.isHeadless());
+
+        if (!profile.getArgs().isEmpty()) {
+            launchOptions.setArgs(profile.getArgs());
+        }
+        if (profile.getChannel() != null) {
+            launchOptions.setChannel(profile.getChannel());
+        }
+
+        this.browser = playwright.chromium().launch(launchOptions);
+
+        Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
+                .setViewportSize(profile.getViewportWidth(), profile.getViewportHeight())
+                .setAcceptDownloads(profile.isAcceptDownloads())
+                .setRecordVideoDir(videoDir)
+                .setRecordVideoSize(profile.getViewportWidth(), profile.getViewportHeight());
+
+        if (profile.getUserAgent() != null) {
+            contextOptions.setUserAgent(profile.getUserAgent());
+        }
+
+        if (profile.getProxy() != null) {
+            BrowserProfile.ProxySettings ps = profile.getProxy();
+            contextOptions.setProxy(new com.microsoft.playwright.options.Proxy(ps.getServer())
+                    .setUsername(ps.getUsername())
+                    .setPassword(ps.getPassword()));
+        }
+
+        this.context = browser.newContext(contextOptions);
+
+        if (!profile.getExtraHeaders().isEmpty()) {
+            context.setExtraHTTPHeaders(profile.getExtraHeaders());
+        }
+
+        this.currentPage = context.newPage();
+        logger.info("Browser session started with video recording");
+    }
+
+    /**
      * Navigate the current page to a URL.
      */
     public void navigateTo(String url) {

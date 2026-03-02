@@ -29,16 +29,100 @@ jobs:
       - name: Build project
         run: mvn clean compile test-compile -B
 
+      - name: Create artifacts directory
+        run: mkdir -p target/e2e-artifacts/videos
+
       - name: Run E2E tests with Gemini
+        id: e2e_test
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: mvn test -Dgroups=e2e -Dtest=BrowserUseE2ETest#testFindBrowserUseStars_withGemini -B
+          E2E_ARTIFACTS_DIR: target/e2e-artifacts
+        run: |
+          mvn test -Dgroups=e2e -Dtest=BrowserUseE2ETest#testFindBrowserUseStars_withGemini -B 2>&1 | tee target/e2e-artifacts/maven-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Check for generated artifacts
+        id: artifacts
+        if: always()
+        run: |
+          echo "--- Listing artifacts ---"
+          ls -la target/e2e-artifacts/ 2>/dev/null || echo "No artifacts directory"
+          ls -la target/e2e-artifacts/videos/ 2>/dev/null || echo "No videos directory"
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: |
+            target/e2e-artifacts/execution-log.txt
+            target/e2e-artifacts/execution-summary.json
+            target/e2e-artifacts/generated-test.spec.ts
+            target/e2e-artifacts/videos/
+            target/e2e-artifacts/maven-output.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Fail job if test failed
+        if: steps.e2e_test.outputs.exit_code != '0'
+        run: exit 1
 
   notify:
     runs-on: ubuntu-latest
     needs: e2e-tests
     if: always()
     steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: artifacts
+        continue-on-error: true
+
+      - name: Read execution log for email
+        id: read_log
+        if: always()
+        run: |
+          # Search for the log file in the downloaded artifacts
+          LOG_FILE=$(find artifacts -name "execution-log.txt" 2>/dev/null | head -1)
+          if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
+            LOG_CONTENT=$(head -c 5000 "$LOG_FILE")
+            echo "log_content<<EOF_LOG" >> $GITHUB_OUTPUT
+            echo "$LOG_CONTENT" >> $GITHUB_OUTPUT
+            echo "EOF_LOG" >> $GITHUB_OUTPUT
+          else
+            echo "log_content=Execution log not available." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Read Playwright script for email
+        id: read_script
+        if: always()
+        run: |
+          SCRIPT_FILE=$(find artifacts -name "generated-test.spec.ts" 2>/dev/null | head -1)
+          if [ -n "$SCRIPT_FILE" ] && [ -f "$SCRIPT_FILE" ]; then
+            SCRIPT_CONTENT=$(head -c 3000 "$SCRIPT_FILE")
+            echo "script_content<<EOF_SCRIPT" >> $GITHUB_OUTPUT
+            echo "$SCRIPT_CONTENT" >> $GITHUB_OUTPUT
+            echo "EOF_SCRIPT" >> $GITHUB_OUTPUT
+          else
+            echo "script_content=Playwright script not generated (test may have failed before script generation)." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Read execution summary for email
+        id: read_summary
+        if: always()
+        run: |
+          SUMMARY_FILE=$(find artifacts -name "execution-summary.json" 2>/dev/null | head -1)
+          if [ -n "$SUMMARY_FILE" ] && [ -f "$SUMMARY_FILE" ]; then
+            SUMMARY_CONTENT=$(cat "$SUMMARY_FILE")
+            echo "summary_content<<EOF_SUMMARY" >> $GITHUB_OUTPUT
+            echo "$SUMMARY_CONTENT" >> $GITHUB_OUTPUT
+            echo "EOF_SUMMARY" >> $GITHUB_OUTPUT
+          else
+            echo "summary_content=Execution summary not available." >> $GITHUB_OUTPUT
+          fi
+
       - name: Send success email
         if: needs.e2e-tests.result == 'success'
         uses: dawidd6/action-send-mail@v3
@@ -51,15 +135,29 @@ jobs:
           subject: "✅ E2E Tests Passed - browser-automation"
           to: ${{ secrets.NOTIFICATION_EMAIL }}
           from: ${{ secrets.EMAIL_USERNAME }}
-          body: |
-            The scheduled E2E tests for browser-automation have PASSED.
+          html_body: |
+            <h2>E2E Tests PASSED</h2>
+            <p><strong>Repository:</strong> ${{ github.repository }}<br/>
+            <strong>Branch:</strong> ${{ github.ref_name }}<br/>
+            <strong>Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">${{ github.run_id }}</a><br/>
+            <strong>Artifacts:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Download from Actions run</a></p>
 
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            Time: ${{ github.event.repository.updated_at }}
+            <h3>Execution Summary</h3>
+            <pre>${{ steps.read_summary.outputs.summary_content }}</pre>
 
-            All Gemini-based E2E tests completed successfully.
+            <h3>Execution Log</h3>
+            <pre>${{ steps.read_log.outputs.log_content }}</pre>
+
+            <h3>Generated Playwright Script</h3>
+            <pre>${{ steps.read_script.outputs.script_content }}</pre>
+
+            <h3>Video Recording</h3>
+            <p>A video recording of the browser session is available as an artifact in the
+            <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions run</a>.
+            Download the <code>e2e-test-artifacts</code> artifact to view the <code>.webm</code> video file.</p>
+
+            <hr/>
+            <p><em>This is an automated notification from the browser-automation E2E test pipeline.</em></p>
 
       - name: Send failure email
         if: needs.e2e-tests.result == 'failure'
@@ -73,11 +171,26 @@ jobs:
           subject: "❌ E2E Tests Failed - browser-automation"
           to: ${{ secrets.NOTIFICATION_EMAIL }}
           from: ${{ secrets.EMAIL_USERNAME }}
-          body: |
-            The scheduled E2E tests for browser-automation have FAILED.
+          html_body: |
+            <h2>E2E Tests FAILED</h2>
+            <p><strong>Repository:</strong> ${{ github.repository }}<br/>
+            <strong>Branch:</strong> ${{ github.ref_name }}<br/>
+            <strong>Run:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">${{ github.run_id }}</a><br/>
+            <strong>Artifacts:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Download from Actions run</a></p>
 
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            <h3>Execution Summary</h3>
+            <pre>${{ steps.read_summary.outputs.summary_content }}</pre>
 
-            Please check the workflow run for details.
+            <h3>Execution Log</h3>
+            <pre>${{ steps.read_log.outputs.log_content }}</pre>
+
+            <h3>Generated Playwright Script</h3>
+            <pre>${{ steps.read_script.outputs.script_content }}</pre>
+
+            <h3>Video Recording</h3>
+            <p>A video recording of the browser session (if captured) is available as an artifact in the
+            <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions run</a>.
+            Download the <code>e2e-test-artifacts</code> artifact to view the <code>.webm</code> video file.</p>
+
+            <hr/>
+            <p><em>This is an automated notification from the browser-automation E2E test pipeline.</em></p>

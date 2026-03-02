@@ -1,6 +1,7 @@
 package com.browserautomation.dom;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,6 +35,55 @@ public class DomElement {
         this.role = role;
         this.ariaLabel = ariaLabel;
         this.boundingBox = boundingBox;
+    }
+
+    /**
+     * Build the best scored selector using the SelectorScorer.
+     * This evaluates multiple selector strategies and returns the highest-scoring one.
+     *
+     * @return the best selector string based on scoring
+     */
+    public String buildScoredSelector() {
+        return buildScoredSelector(false);
+    }
+
+    /**
+     * Build the best scored selector, optionally accounting for Shadow DOM.
+     *
+     * @param inShadowDom whether this element is inside a Shadow DOM
+     * @return the best selector string based on scoring
+     */
+    public String buildScoredSelector(boolean inShadowDom) {
+        SelectorScorer scorer = new SelectorScorer();
+        List<SelectorStrategy> candidates = scorer.generateAndScoreCandidates(this, inShadowDom);
+        if (!candidates.isEmpty()) {
+            return candidates.get(0).getSelector();
+        }
+        return buildSelector();
+    }
+
+    /**
+     * Get all scored selector candidates for this element.
+     *
+     * @return list of scored selectors, sorted by score descending
+     */
+    public List<SelectorStrategy> getScoredSelectors() {
+        SelectorScorer scorer = new SelectorScorer();
+        return scorer.generateAndScoreCandidates(this, false);
+    }
+
+    /**
+     * Check if this element resides inside a Shadow DOM.
+     */
+    public boolean isInShadowDom() {
+        return "true".equals(attributes.get("data-in-shadow-dom"));
+    }
+
+    /**
+     * Get the shadow host selector if this element is inside a Shadow DOM.
+     */
+    public String getShadowHostSelector() {
+        return attributes.get("data-shadow-host");
     }
 
     /**

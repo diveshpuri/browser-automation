@@ -25,6 +25,7 @@ public class ActionRegistry {
      * Register all built-in browser actions.
      */
     private void registerDefaultActions() {
+        logger.info("[REGISTRY] Registering default browser actions...");
         register(new NavigateAction());
         register(new ClickElementAction());
         register(new InputTextAction());
@@ -43,6 +44,7 @@ public class ActionRegistry {
         register(new HoverAction());
         register(new DragAndDropAction());
         register(new MouseMoveAction());
+        logger.info("[REGISTRY] {} default actions registered: {}", actions.size(), actions.keySet());
     }
 
     /**
@@ -57,7 +59,11 @@ public class ActionRegistry {
      * Get an action by name.
      */
     public BrowserAction getAction(String name) {
-        return actions.get(name);
+        BrowserAction action = actions.get(name);
+        if (action == null) {
+            logger.warn("[REGISTRY] Action '{}' not found. Available actions: {}", name, actions.keySet());
+        }
+        return action;
     }
 
     /**

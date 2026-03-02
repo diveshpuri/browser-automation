@@ -1,5 +1,8 @@
 package com.browserautomation.agent;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,6 +10,8 @@ import java.util.List;
  * Tracks the execution state of the agent across steps.
  */
 public class AgentState {
+
+    private static final Logger logger = LoggerFactory.getLogger(AgentState.class);
 
     private int currentStep;
     private int consecutiveFailures;
@@ -32,19 +37,35 @@ public class AgentState {
 
         if (step.hasError()) {
             consecutiveFailures++;
+            logger.info("[STATE] Step {} recorded: action={}, ERROR='{}', consecutiveFailures={}, tokens={}, duration={}ms",
+                    step.getStepNumber(), step.getActionName(), step.getError(),
+                    consecutiveFailures, step.getTokensUsed(), step.getDurationMs());
         } else {
             consecutiveFailures = 0;
+            logger.info("[STATE] Step {} recorded: action={}, result='{}', consecutiveFailures=0, tokens={}, duration={}ms",
+                    step.getStepNumber(), step.getActionName(),
+                    step.getActionResult() != null ? truncateStr(step.getActionResult(), 100) : "OK",
+                    step.getTokensUsed(), step.getDurationMs());
         }
     }
 
     public void markCompleted(String result) {
         this.isCompleted = true;
         this.finalResult = result;
+        logger.info("[STATE] Agent COMPLETED after {} steps, {} total tokens — result: {}",
+                currentStep, totalTokensUsed, result);
     }
 
     public void markFailed(String reason) {
         this.isFailed = true;
         this.finalResult = reason;
+        logger.warn("[STATE] Agent FAILED after {} steps, {} total tokens — reason: {}",
+                currentStep, totalTokensUsed, reason);
+    }
+
+    private static String truncateStr(String text, int max) {
+        if (text == null || text.length() <= max) return text;
+        return text.substring(0, max) + "...";
     }
 
     // Getters
